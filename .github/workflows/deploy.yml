@@ -1,0 +1,197 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-tournoi-palet
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_HOST: 77.42.23.215
+  APP_URL: https://tournoi-palet.jimmydore.fr
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      # Tests must exit on their own: close servers in after()/finally (gotchas #12).
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build --if-present
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Check required secrets
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          for name in ADMIN_PASSWORD; do
+            value="${!name:-}"
+            if [ -z "$value" ]; then
+              echo "::error title=$name manquant::Le secret $name est vide ou absent (Settings > Secrets and variables > Actions)."
+              exit 1
+            fi
+            # Écrit entre apostrophes dans .env (format env_file de Compose) :
+            # antislash et retour à la ligne ne survivent pas à ce format.
+            case "$value" in
+              *\\* | *$'\n'* | *$'\r'*)
+                echo "::error title=$name invalide::$name ne doit contenir ni antislash ni retour à la ligne."
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Update code on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" 'bash -s' <<'EOF'
+          set -euo pipefail
+          REPO=https://github.com/JimmyDore/tournoi-palet.git
+          # Le nom du dossier est le nom du projet Compose : toujours /root/tournoi-palet.
+          DIR=/root/tournoi-palet
+          if [ -d "$DIR/.git" ]; then
+            cd "$DIR"
+            git fetch --prune origin
+            git checkout -B main origin/main
+          else
+            git clone "$REPO" "$DIR"
+            cd "$DIR"
+          fi
+          EOF
+
+      - name: Write app .env
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          umask 077
+          f="$RUNNER_TEMP/tournoi-palet.env"
+          trap 'rm -f "$f"' EXIT
+          q="'"
+          bq="\\'"
+          : > "$f"
+          for name in ADMIN_PASSWORD; do
+            value="${!name}"
+            printf "%s='%s'\n" "$name" "${value//"$q"/"$bq"}" >> "$f"
+          done
+          ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" \
+            'umask 077 && cat > /root/tournoi-palet/.env && chmod 600 /root/tournoi-palet/.env' < "$f"
+
+      - name: Deploy on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" 'bash -s' <<'EOF'
+          set -euo pipefail
+          # Le conteneur tourne en uid 1000 (utilisateur node) : SQLITE_CANTOPEN sinon.
+          install -d -o 1000 -g 1000 -m 700 /root/tournoi-palet-data
+          cd /root/tournoi-palet
+          # --remove-orphans : un service renommé ne reste pas en double sur le réseau.
+          docker compose up -d --build --remove-orphans
+          docker image prune -f
+          EOF
+
+      # Première sonde, depuis le serveur : la stack elle-même est saine,
+      # indépendamment de DNS, de Caddy et du certificat (live-buzzer).
+      - name: Health check (containers)
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" 'bash -s' <<'EOF'
+          set -uo pipefail
+          CONTAINERS="tournoi-palet-web"
+          for i in $(seq 1 30); do
+            ok=1
+            for c in $CONTAINERS; do
+              s=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$c" 2>/dev/null || echo missing)
+              [ "$s" = healthy ] || [ "$s" = running ] || { ok=0; echo "Attempt $i: $c is $s"; }
+            done
+            if [ "$ok" = 1 ]; then echo "Containers healthy on attempt $i"; exit 0; fi
+            sleep 5
+          done
+          echo "Containers not healthy after 30 attempts"
+          docker ps -a --filter "name=tournoi-palet"
+          docker compose -f /root/tournoi-palet/docker-compose.yml logs --tail 80
+          exit 1
+          EOF
+
+      - name: Configure backups
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$R2_ENDPOINT" ] && [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_SECRET_ACCESS_KEY" ]; then
+            if [ -z "$SLACK_WEBHOOK_URL" ]; then
+              echo "::warning::SLACK_WEBHOOK_URL absent : les échecs de sauvegarde ne seront pas notifiés."
+            fi
+            umask 077
+            f="$RUNNER_TEMP/tournoi-palet-backup.env"
+            trap 'rm -f "$f"' EXIT
+            {
+              echo 'RCLONE_CONFIG_R2_TYPE=s3'
+              echo 'RCLONE_CONFIG_R2_PROVIDER=Cloudflare'
+              echo 'RCLONE_CONFIG_R2_REGION=auto'
+              printf 'RCLONE_CONFIG_R2_ENDPOINT=%s\n' "$R2_ENDPOINT"
+              printf 'RCLONE_CONFIG_R2_ACCESS_KEY_ID=%s\n' "$R2_ACCESS_KEY_ID"
+              printf 'RCLONE_CONFIG_R2_SECRET_ACCESS_KEY=%s\n' "$R2_SECRET_ACCESS_KEY"
+              echo 'RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true'
+              printf 'SLACK_WEBHOOK_URL=%s\n' "$SLACK_WEBHOOK_URL"
+            } > "$f"
+            ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" \
+              'umask 077 && cat > /root/.tournoi-palet-backup.env && chmod 600 /root/.tournoi-palet-backup.env' < "$f"
+            ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" \
+              'test -x /root/tournoi-palet/deploy/backup.sh && install -o root -g root -m 644 /root/tournoi-palet/deploy/cron/tournoi-palet-backup /etc/cron.d/tournoi-palet-backup'
+            echo "Backups enabled: /etc/cron.d/tournoi-palet-backup -> r2:hetzner-backups/tournoi-palet"
+          else
+            ssh -i ~/.ssh/id_ed25519 "root@$DEPLOY_HOST" \
+              'rm -f /etc/cron.d/tournoi-palet-backup /root/.tournoi-palet-backup.env'
+            echo "R2 secrets absent, backups disabled"
+          fi
+
+  # Seconde sonde, l'URL publique : prouve la chaîne DNS -> Caddy -> app, certificat
+  # compris. Rouge alors que la précédente est verte : chercher du côté du Caddyfile.
+  # Échoue au premier déploiement tant que DNS et route Caddy n'existent pas (gotchas #11).
+  health:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Health check (public, HTTPS)
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -fsS -o /dev/null -w '%{http_code}' "$APP_URL/health" || true)
+            head=$(curl -fsS -o /dev/null -I -w '%{http_code}' "$APP_URL/health" || true)
+            if [ "$code" = "200" ] && [ "$head" = "200" ]; then
+              echo "Health check passed on attempt $i (GET and HEAD)"
+              curl -fsS "$APP_URL/health"
+              exit 0
+            fi
+            echo "Attempt $i: GET='$code' HEAD='$head', retrying in 5s..."
+            sleep 5
+          done
+          echo "Health check failed after 30 attempts"
+          exit 1

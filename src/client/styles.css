@@ -1,0 +1,36 @@
+:root {
+  --petrole: #0b4f5c;
+  --or: #d4a21e;
+  --blanc: #ffffff;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.hello {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+  background: var(--petrole);
+  color: var(--blanc);
+}
+
+.logo {
+  width: min(40vw, 180px);
+  height: auto;
+}
+
+h1 {
+  margin: 0;
+  color: var(--or);
+}
+
+.status {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  opacity: 0.85;
+}

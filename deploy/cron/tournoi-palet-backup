@@ -1,0 +1,8 @@
+#
+# Sauvegarde nocturne de tournoi-palet vers Cloudflare R2 (installé par la CI).
+# 04:00, décalé des autres sauvegardes du serveur.
+# hub-run (installé par le déploiement du hub) signale chaque run à la tâche
+# tournoi-palet-backup de hub.jimmydore.fr, qui alerte sur Slack en cas d'échec.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 4 * * * root /usr/local/bin/hub-run tournoi-palet-backup -- /root/tournoi-palet/deploy/backup.sh >> /var/log/tournoi-palet-backup.log 2>&1

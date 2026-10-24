@@ -1,0 +1,35 @@
+# Stack tournoi-palet.jimmydore.fr — un seul service Node.
+# Pas de ports publiés : le trafic arrive via le Caddy partagé (stack ravetycoon)
+# qui fait le TLS et reverse-proxy vers tournoi-palet-web:8787 sur le réseau
+# Docker `ravetycoon_default`. Caddy gère seul l'upgrade WebSocket de /ws.
+#
+# ATTENTION : le service est préfixé `tournoi-palet-` à dessein. Le réseau est
+# partagé avec la stack ravetycoon, qui expose déjà les alias DNS `web` et `api` ;
+# un service nommé `web` ou `api` ici capterait le trafic de l'autre stack.
+#
+# `.env` (non versionné, mode 600) est écrit par la CI avec les secrets de l'app.
+# Les données vivent sur l'hôte dans /root/tournoi-palet-data, qui doit appartenir
+# à l'uid 1000 (utilisateur `node` du conteneur).
+services:
+  tournoi-palet-web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    image: tournoi-palet-web
+    container_name: tournoi-palet-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "8787"
+      HOST: 0.0.0.0
+      DATA_DIR: /data
+      TZ: Europe/Paris
+    volumes:
+      - /root/tournoi-palet-data:/data
+    networks:
+      - ravetycoon_default
+
+networks:
+  ravetycoon_default:
+    external: true

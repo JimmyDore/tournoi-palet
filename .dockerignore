@@ -1,0 +1,23 @@
+# `.claude` : les worktrees d'agents (.claude/worktrees/, chacun avec son
+# node_modules) partiraient sinon dans le contexte de `docker build`.
+node_modules
+build
+dist
+.svelte-kit
+.git
+.github
+.claude
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.db-wal
+*.db-shm
+coverage/
+test-results/
+playwright-report/
+# Les Dockerfiles sont lus hors contexte : rien dans deploy/ ne va dans l'image.
+deploy/
