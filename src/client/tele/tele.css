@@ -1,0 +1,413 @@
+/* ---------- Télé (1920×1080, lue de loin) ----------
+   Tailles en vh / vw : le même écran tient sur une télé 720p ou 4K. */
+
+.tv {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 21vw;
+  background: var(--petrole-fonce);
+  color: var(--blanc);
+  overflow: hidden;
+  font-size: 3vh;
+  line-height: 1.2;
+}
+
+.tv-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 3vh 2.5vw 2.5vh;
+}
+
+.tv-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2vw;
+  padding-bottom: 1.5vh;
+  margin-bottom: 2vh;
+  border-bottom: 0.5vh solid var(--or);
+}
+
+.tv-title {
+  margin: 0;
+  font-size: 5.2vh;
+  font-weight: 800;
+  color: var(--or);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.tv-pager {
+  font-size: 3.4vh;
+  font-weight: 700;
+  color: var(--petrole-clair);
+}
+
+.tv-body {
+  flex: 1;
+  min-height: 0;
+  animation: tv-fade 0.6s ease-out;
+}
+
+@keyframes tv-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tv-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vh;
+}
+
+/* Matchs : 2 colonnes de 6 */
+
+.tv-matches {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(6, 1fr);
+  grid-auto-flow: column;
+  gap: 1.4vh 1.5vw;
+}
+
+.tv-match {
+  display: grid;
+  grid-template-columns: 9vh 1fr auto;
+  align-items: center;
+  gap: 1.2vw;
+  min-width: 0;
+  padding: 0 1.2vw 0 0;
+  background: var(--petrole);
+  border-radius: 1.2vh;
+  overflow: hidden;
+}
+
+.tv-board {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  background: var(--or);
+  color: var(--petrole-fonce);
+  font-size: 5.6vh;
+  font-weight: 900;
+}
+
+.tv-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vh;
+  min-width: 0;
+  font-size: 3.5vh;
+  font-weight: 600;
+}
+
+.tv-teams > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6vh;
+  min-width: 5vh;
+  font-size: 3.6vh;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--petrole-clair);
+}
+
+.tv-state {
+  font-size: 2.4vh;
+  font-weight: 600;
+  color: var(--petrole-clair);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: right;
+  max-width: 9vw;
+}
+
+.tv-match-waiting-board .tv-board {
+  background: var(--petrole-clair);
+  color: var(--gris);
+}
+
+.tv-match-waiting-board .tv-state {
+  color: var(--or);
+}
+
+.tv-match-done {
+  background: #0e5d6c;
+}
+
+.tv-match-done .tv-teams > span:not(.tv-winner) {
+  color: #a9c6cc;
+}
+
+.tv-winner {
+  color: var(--or);
+}
+
+.tv-score .tv-winner {
+  color: var(--or);
+}
+
+.tv-bye {
+  margin: 0;
+  font-size: 3.2vh;
+  color: var(--petrole-clair);
+}
+
+.tv-bye strong {
+  color: var(--blanc);
+}
+
+/* Classement : 16 lignes par page */
+
+.tv-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 3.6vh;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-table th {
+  padding: 0 1vw 0.8vh;
+  font-size: 2.2vh;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--petrole-clair);
+  text-align: right;
+  width: 12vh;
+}
+
+.tv-table td {
+  height: 5vh;
+  padding: 0 1vw;
+  text-align: right;
+  border-top: 0.2vh solid #145f6d;
+}
+
+.tv-table tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tv-table .tv-rank {
+  width: 7.5vh;
+  text-align: right;
+  font-weight: 800;
+  color: var(--or);
+}
+
+.tv-table th.tv-name,
+.tv-table td.tv-name {
+  width: auto;
+  text-align: left;
+  padding-left: 1vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.tv-table .tv-wins {
+  font-weight: 800;
+  color: var(--or);
+}
+
+.tv-empty {
+  margin: 0;
+  font-size: 4vh;
+  color: var(--petrole-clair);
+}
+
+/* Accueil (avant le tirage) */
+
+.tv-welcome {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3vh;
+}
+
+.tv-welcome-date {
+  margin: 0;
+  font-size: 4.5vh;
+  font-weight: 700;
+  color: var(--or);
+}
+
+.tv-welcome-date::first-letter {
+  text-transform: uppercase;
+}
+
+.tv-welcome-name {
+  margin: 0;
+  font-size: 10vh;
+  line-height: 1.05;
+}
+
+.tv-welcome-count {
+  margin: 0;
+  font-size: 5vh;
+  font-weight: 700;
+}
+
+/* Colonne permanente : logo, nom, partie, chrono, QR code */
+
+.tv-side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vh;
+  padding: 3vh 1.5vw 2vh;
+  background: var(--petrole);
+  border-left: 0.6vh solid var(--or);
+  text-align: center;
+  min-width: 0;
+}
+
+.tv-logo {
+  width: 13vh;
+  height: auto;
+}
+
+.tv-club {
+  margin: 0;
+  font-size: 2.1vh;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--or);
+}
+
+.tv-edition {
+  margin: 0;
+  font-size: 3.2vh;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.tv-round {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 4.4vh;
+  font-weight: 800;
+}
+
+.tv-round span {
+  font-size: 2.4vh;
+  font-weight: 600;
+  color: var(--petrole-clair);
+}
+
+.tv-clock-slot {
+  flex: 1;
+}
+
+.tv-qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vh;
+}
+
+.tv-qr {
+  width: min(17vw, 34vh);
+  aspect-ratio: 1;
+  background: var(--blanc);
+  border-radius: 1vh;
+  overflow: hidden;
+}
+
+.tv-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tv-qr-caption {
+  margin: 0;
+  font-size: 2.1vh;
+  font-weight: 600;
+}
+
+.tv-offline,
+.tv-test {
+  margin: 0;
+  padding: 0.6vh 1vw;
+  border-radius: 0.8vh;
+  font-size: 2vh;
+  font-weight: 700;
+}
+
+.tv-offline {
+  background: var(--rouge);
+}
+
+.tv-test {
+  background: var(--or);
+  color: var(--petrole-fonce);
+}
+
+.tv-fullscreen {
+  position: absolute;
+  top: 1vh;
+  right: 1vh;
+  padding: 0.4vh 0.8vh;
+  font: inherit;
+  font-size: 1.5vh;
+  color: var(--petrole-clair);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0.6vh;
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.tv-fullscreen:hover,
+.tv-fullscreen:focus-visible {
+  opacity: 1;
+}
+
+.tv-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4vh;
+  font-size: 4vh;
+  text-align: center;
+  padding: 0 10vw;
+}
+
+.tv-message-logo {
+  width: 22vh;
+  height: auto;
+}
+
+.tv-forfeit {
+  font-size: 1.8vh;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #f2a29c;
+}

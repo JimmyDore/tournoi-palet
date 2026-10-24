@@ -4,6 +4,7 @@ import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } 
 import { decidePool, evolvePool, poolLockProblem, type PoolCommand, type PoolEvent } from './pool.ts'
 import { decideRehearsal, type RehearsalCommand } from './rehearsal.ts'
 import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
+import { decideTv, evolveTv, type TvCommand, type TvEvent } from './tv.ts'
 import { initialState, type EditionState } from './state.ts'
 import { refuse, type Ctx, type Decision } from './types.ts'
 
@@ -17,8 +18,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | RehearsalCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | TvCommand | RehearsalCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | TvEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -47,6 +48,8 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'declareForfeit':
     case 'cancelForfeit':
       return decideForfeit(state, command, ctx)
+    case 'setTvView':
+      return decideTv(state, command, ctx)
     case 'generateFakeTeams':
     case 'fillRandomScores':
       // Produit des événements ordinaires : rien à ajouter dans `evolve`.
@@ -76,6 +79,8 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'forfeitDeclared':
     case 'forfeitCancelled':
       return evolveForfeit(state, event)
+    case 'tvViewSet':
+      return evolveTv(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)

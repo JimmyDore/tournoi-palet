@@ -6,6 +6,7 @@ import { LinksTab } from './LinksTab.tsx'
 import { PoolsTab } from './PoolsTab.tsx'
 import { SettingsTab } from './SettingsTab.tsx'
 import { TeamsTab } from './TeamsTab.tsx'
+import { TvTab } from './TvTab.tsx'
 
 export interface TabProps {
   view: AdminView
@@ -21,6 +22,7 @@ export const EDITION_TABS: { key: string; label: string; Component: ComponentTyp
   { key: 'equipes', label: 'Équipes', Component: TeamsTab },
   { key: 'pointage', label: 'Pointage', Component: CheckInTab },
   { key: 'poules', label: 'Poules', Component: PoolsTab },
+  { key: 'tele', label: 'Télé', Component: TvTab },
   { key: 'liens', label: 'Liens publics', Component: LinksTab },
   { key: 'journal', label: 'Journal', Component: JournalTab },
 ]

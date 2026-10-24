@@ -1,0 +1,339 @@
+/* ---------- Téléphone pendant le tournoi (lisible à 375 px) ---------- */
+
+.phone-edition {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+/* Bandeau réduit */
+
+.public-header.compact {
+  padding: 0.6rem 1rem 0.25rem;
+}
+
+.public-header.compact .public-brand {
+  flex-direction: row;
+  gap: 0.6rem;
+}
+
+.public-header.compact .public-logo {
+  width: 44px;
+}
+
+.public-header.compact .public-club {
+  font-size: 0.95rem;
+}
+
+/* Mon équipe */
+
+.my-team-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.my-team-label {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gris);
+}
+
+.link-button {
+  padding: 0.35rem 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--petrole);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.my-team-name {
+  margin: 0.15rem 0 0.75rem;
+  font-size: 1.4rem;
+  line-height: 1.2;
+  color: var(--petrole);
+  overflow-wrap: anywhere;
+}
+
+.my-next {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+}
+
+.my-next p {
+  margin: 0;
+}
+
+.my-next-board {
+  background: var(--petrole);
+  color: var(--blanc);
+}
+
+.my-next-wait {
+  background: var(--or-clair);
+  color: var(--texte);
+}
+
+.my-next-where {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.my-next-board .my-next-where span {
+  display: block;
+  font-size: 2.4rem;
+  line-height: 1.1;
+  color: var(--or);
+}
+
+.my-next-against {
+  margin-top: 0.25rem !important;
+  font-size: 1.15rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.my-next-hint {
+  margin-top: 0.25rem !important;
+  font-size: 0.95rem;
+}
+
+.my-place {
+  margin: 0.9rem 0 0;
+  font-size: 1.05rem;
+}
+
+.my-place strong {
+  font-size: 1.5rem;
+  color: var(--petrole);
+}
+
+.my-results {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.my-results li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--petrole-clair);
+  font-size: 0.95rem;
+}
+
+.my-result-round {
+  font-weight: 700;
+  color: var(--gris);
+  white-space: nowrap;
+}
+
+.my-result-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.my-result-score {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.my-results .won .my-result-score {
+  color: var(--vert);
+}
+
+.my-results .lost .my-result-score {
+  color: var(--rouge);
+}
+
+/* Choix de l'équipe */
+
+.picker-search {
+  width: 100%;
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 1.05rem;
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+}
+
+.picker-search:focus {
+  outline: 2px solid var(--or);
+  border-color: var(--petrole);
+}
+
+.picker-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.picker-list button {
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--petrole);
+  background: var(--petrole-clair);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.picker-list button:active,
+.picker-list button:focus-visible {
+  background: var(--or-clair);
+  outline: 2px solid var(--or);
+}
+
+/* Matchs */
+
+.phone-matches {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.phone-match {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.35rem 0.6rem 0.35rem 0;
+  border-radius: 10px;
+  background: var(--petrole-clair);
+  overflow: hidden;
+}
+
+.phone-match.is-mine {
+  outline: 3px solid var(--or);
+}
+
+.phone-board {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  margin: -0.35rem 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--petrole-fonce);
+  background: var(--or);
+}
+
+.phone-match-waiting-board .phone-board {
+  background: var(--bord);
+  color: var(--gris);
+}
+
+.phone-teams {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  font-size: 0.98rem;
+}
+
+.phone-teams > span {
+  overflow-wrap: anywhere;
+}
+
+.phone-score {
+  display: grid;
+  gap: 0.1rem;
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-state {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gris);
+}
+
+.phone-match .winner {
+  font-weight: 800;
+  color: var(--petrole);
+}
+
+.phone-bye {
+  margin: 0.75rem 0 0;
+}
+
+/* Classement */
+
+.phone-standings {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+}
+
+.phone-standings th {
+  padding: 0.3rem 0.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--gris);
+  text-align: right;
+}
+
+.phone-standings td {
+  padding: 0.45rem 0.25rem;
+  text-align: right;
+  border-top: 1px solid var(--petrole-clair);
+}
+
+.phone-standings .rank {
+  width: 2rem;
+  font-weight: 700;
+  color: var(--gris);
+}
+
+.phone-standings .name {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.phone-standings .wins {
+  font-weight: 800;
+  color: var(--petrole);
+}
+
+.phone-standings tr.is-mine td {
+  background: var(--or-clair);
+  font-weight: 700;
+}
+
+.forfeit-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--rouge);
+}
+
+.phone-standings .name .forfeit-tag {
+  margin-left: 0.35rem;
+}

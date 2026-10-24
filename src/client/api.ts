@@ -43,3 +43,8 @@ export function publicLink(kind: 'e' | 'tele', view: Pick<AdminView, 'id' | 'pre
   const path = `/${kind}/${encodeURIComponent(view.id)}${view.settings.isTest ? `?k=${view.previewToken}` : ''}`
   return absolute ? `${location.origin}${path}` : path
 }
+
+/** Adresse complète de la page publique (téléphones), vue depuis la télé : `k` passe tel quel. */
+export function publicPageUrl(editionId: string, k?: string | null): string {
+  return `${location.origin}/e/${encodeURIComponent(editionId)}${k ? `?k=${encodeURIComponent(k)}` : ''}`
+}

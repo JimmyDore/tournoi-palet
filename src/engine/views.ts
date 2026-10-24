@@ -3,6 +3,7 @@ import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
 import { poolView, type PoolStanding, type PoolView } from './pool.ts'
 import { requireEdition, type EditionState } from './state.ts'
+import type { TvState } from './tv.ts'
 import { teamName, teamStatuses, teamWarnings, type TeamFields, type TeamStatus } from './teams.ts'
 
 export { participants }
@@ -40,6 +41,8 @@ export interface PublicView {
   placesLeft: number
   /** Parties, planches, scores et classement des poules (noms d'équipe seulement). */
   pool: PoolView
+  /** Vue imposée à la télé (`auto` : rotation). */
+  tv: TvState
 }
 
 export interface PublicTeam {
@@ -78,6 +81,7 @@ export function publicView(state: EditionState): PublicView {
     waitlist: waitlist.map(named),
     placesLeft,
     pool: poolView(state),
+    tv: state.tv,
   }
 }
 
@@ -112,6 +116,7 @@ export interface AdminView {
   waitlistCount: number
   placesLeft: number
   pool: PoolView
+  tv: TvState
 }
 
 export function adminView(state: EditionState): AdminView {
@@ -140,6 +145,7 @@ export function adminView(state: EditionState): AdminView {
     waitlistCount: waitlist.length,
     placesLeft,
     pool: poolView(state),
+    tv: state.tv,
   }
 }
 
