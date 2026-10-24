@@ -71,10 +71,12 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
             {view.name}
             <span className="results-date">{formatDate(view.date)} · concours terminé</span>
           </p>
+          {/* Équipe déjà choisie : sa place finale et son lot d'abord ; sinon le choix vient après les résultats. */}
+          {teamId && <MyTeam view={view} teamId={teamId} choose={choose} />}
           <Winners view={view} />
-          <MyTeam view={view} teamId={teamId} choose={choose} />
           <FinalRankingCard view={view} teamId={teamId} />
           <PublicBrackets view={view} teamId={teamId} />
+          {!teamId && <MyTeam view={view} teamId={teamId} choose={choose} />}
         </>
       ) : view.brackets.generated ? (
         <>
@@ -93,6 +95,7 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
           <p className="phone-edition">{view.name}</p>
           <MyTeam view={view} teamId={teamId} choose={choose} />
           <CurrentMatches view={view} teamId={teamId} />
+          <FinalRankingCard view={view} teamId={teamId} />
           <PoolStandings view={view} teamId={teamId} />
           <EditionInfo view={view} />
         </>

@@ -79,6 +79,8 @@ export interface MyTeamView {
   bracketResults: MyBracketResult[]
   /** Sa ligne du classement final (provisoire tant que `definitive` est faux), `null` avant les tableaux. */
   ranking: FinalRankingRow | null
+  /** « Ton lot » : seulement une fois sa place finale définitive, `null` sinon ou sans lot. */
+  prize: string | null
 }
 
 export function myTeamView(view: PublicView, teamId: string): MyTeamView | null {
@@ -111,7 +113,8 @@ export function myTeamView(view: PublicView, teamId: string): MyTeamView | null 
       ? bracketNext(view, teamId, matches, ranking)
       : nextOf(view, teamId, standing !== null)
   const bracketResults = matches.filter((m) => m.score).map((m) => resultOf(m, teamId))
-  return { team, next, results, standing, teamCount: pool.standings.length, bracketResults, ranking }
+  const prize = ranking?.definitive ? ranking.prize : null
+  return { team, next, results, standing, teamCount: pool.standings.length, bracketResults, ranking, prize }
 }
 
 const ref = (team: BracketTeamRef): PoolTeamRef => ({ id: team.id, name: team.name })

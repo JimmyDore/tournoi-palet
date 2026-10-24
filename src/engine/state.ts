@@ -3,6 +3,7 @@ import type { EditionSettings } from './settings.ts'
 import type { ClockState } from './clock.ts'
 import type { Forfeit } from './forfeit.ts'
 import type { PoolState } from './pool.ts'
+import type { PrizeRange } from './prizes.ts'
 import type { TeamFields } from './teams.ts'
 import { initialTv, type TvState } from './tv.ts'
 
@@ -46,10 +47,12 @@ export interface EditionState {
   tv: TvState
   /** Chrono de la partie ou du tour, `null` tant qu'il n'a jamais été lancé. */
   clock: ClockState | null
+  /** Tranches de places et leur lot, triées par place. */
+  prizes: PrizeRange[]
 }
 
 export function initialState(): EditionState {
-  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {}, brackets: initialBrackets(), tv: initialTv(), clock: null }
+  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {}, brackets: initialBrackets(), tv: initialTv(), clock: null, prizes: [] }
 }
 
 /** Pour les vues et les commandes qui exigent une édition créée. */

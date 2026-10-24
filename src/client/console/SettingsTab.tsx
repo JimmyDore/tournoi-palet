@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { MAX_TEAMS_LIMIT, type EditionSettings } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { PrizesEditor } from './PrizesEditor.tsx'
 import type { TabProps } from './tabs.tsx'
 
 /** Le formulaire garde des chaînes ; le moteur valide et refuse au besoin. */
@@ -100,7 +101,8 @@ export function SettingsTab({ view }: TabProps) {
   )
 
   return (
-    // noValidate : c'est le moteur qui valide, et la console affiche son refus.
+    <div className="stack">
+    {/* noValidate : c'est le moteur qui valide, et la console affiche son refus. */}
     <form className="panel" onSubmit={submit} noValidate>
       <h2>Infos pratiques</h2>
       <div className="grid">
@@ -180,5 +182,7 @@ export function SettingsTab({ view }: TabProps) {
         </ConfirmDialog>
       )}
     </form>
+    <PrizesEditor view={view} />
+    </div>
   )
 }

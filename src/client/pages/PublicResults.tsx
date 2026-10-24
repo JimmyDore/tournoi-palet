@@ -1,8 +1,5 @@
-import type { BracketMatchView, BracketView, FinalRankingRow, PublicView } from '../../engine/index.ts'
+import type { BracketMatchView, BracketView, PublicView } from '../../engine/index.ts'
 import { rankingStage } from '../format.ts'
-
-/** Ligne du classement, avec le lot quand l'édition en a (ticket 16). */
-type RankingRow = FinalRankingRow & { lot?: string | null }
 
 /** Vainqueurs des quatre tableaux, en tête de la page d'une édition terminée. */
 export function Winners({ view }: { view: PublicView }) {
@@ -27,9 +24,9 @@ export function Winners({ view }: { view: PublicView }) {
 
 /** Classement final de 1 à N (téléphone), par blocs ; la colonne Lot n'apparaît que si un lot est renseigné. */
 export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: string | null }) {
-  const rows = view.ranking.rows as RankingRow[]
+  const rows = view.ranking.rows
   if (rows.length === 0) return null
-  const withLots = rows.some((r) => r.lot)
+  const withLots = rows.some((r) => r.prize !== null)
   return (
     <section className="card" aria-label="Classement final">
       <h2 className="card-title">Classement final</h2>
@@ -59,7 +56,7 @@ export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: s
                   {row.team.name}
                   <span className="results-stage">{rankingStage(row)}</span>
                 </td>
-                {withLots && <td className="name results-lot">{row.lot ?? ''}</td>}
+                {withLots && <td className="name results-lot">{row.prize ?? ''}</td>}
               </tr>,
             ]
           })}

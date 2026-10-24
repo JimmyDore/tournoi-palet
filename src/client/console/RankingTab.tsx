@@ -19,6 +19,7 @@ export function RankingTab({ view }: TabProps) {
     )
   }
   const definitive = rows.filter((r) => r.definitive).length
+  const withPrizes = rows.some((r) => r.prize !== null)
   const blocks: FinalRankingRow[][] = []
   for (const row of rows) {
     const last = blocks.at(-1)
@@ -63,6 +64,11 @@ export function RankingTab({ view }: TabProps) {
                   <th scope="col" className="left">
                     Statut
                   </th>
+                  {withPrizes && (
+                    <th scope="col" className="left">
+                      Lot
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -77,6 +83,7 @@ export function RankingTab({ view }: TabProps) {
                     <td className="left">
                       {row.definitive ? <span className="badge badge-final">définitive</span> : <span className="badge badge-wait">provisoire</span>}
                     </td>
+                    {withPrizes && <td className="left ranking-prize">{row.prize ?? <span className="muted">—</span>}</td>}
                   </tr>
                 ))}
               </tbody>

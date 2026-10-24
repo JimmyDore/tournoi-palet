@@ -45,7 +45,12 @@ function MyTeamCard({ mine, onChange }: { mine: MyTeamView; onChange: () => void
       </div>
       <h2 className="my-team-name">{mine.team.name}</h2>
       <NextBox next={mine.next} />
-      {/* Ticket 16 : « ton lot » ici, sous la place finale (mine.ranking.definitive). */}
+      {/* « Ton lot » : sous la place finale, une fois définitive. */}
+      {mine.prize && (
+        <p className="my-prize">
+          Ton lot : <strong>{mine.prize}</strong>
+        </p>
+      )}
       {ranking && !ranking.definitive && mine.next.kind !== 'eliminated' && (
         <p className="my-place">
           Classement provisoire : <strong>{ordinal(ranking.place)}</strong> sur {mine.teamCount} · {ranking.blockName}
