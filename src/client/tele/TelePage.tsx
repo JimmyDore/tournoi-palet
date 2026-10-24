@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PublicView } from '../../engine/index.ts'
 import { publicPageUrl } from '../api.ts'
 import { CLUB_TITLE, Logo } from '../components/Brand.tsx'
+import { ClockDisplay } from '../components/Clock.tsx'
 import { QrCode } from '../components/QrCode.tsx'
 import { formatDate } from '../format.ts'
 import { useEditionView } from '../live.ts'
@@ -78,8 +79,7 @@ function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null;
             </span>
           </p>
         )}
-        {/* Ticket 08 : le chrono de la partie s'affiche ici, en grand. */}
-        <div className="tv-clock-slot" />
+        <div className="tv-clock-slot">{view.clock && <ClockDisplay clock={view.clock} className="clock-tv" />}</div>
         <div className="tv-qr-block">
           <QrCode url={url} className="tv-qr" />
           <p className="tv-qr-caption">Suivez le tournoi et votre équipe sur votre téléphone</p>
