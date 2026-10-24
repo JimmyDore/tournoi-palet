@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { POOL_ROUNDS, type PoolMatchView, type PoolRoundView, type PoolStanding, type PoolTeamRef } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
 
 /** Texte saisi → nombre ; le moteur refuse ce qui n'est pas un entier de 0 à 13. */
@@ -85,6 +86,7 @@ export function PoolsTab({ view }: TabProps) {
 
   return (
     <div className="stack">
+      <RehearsalPanel view={view} />
       <section className="panel">
         <h2>Poules</h2>
         {current ? (
