@@ -1,11 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { POOL_ROUNDS, bracketSize, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
+import { BRACKET_NAMES, POOL_ROUNDS, bracketSize, type BracketKey, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { ClockControls } from './ClockControls.tsx'
 import { MatchList } from './PoolsTab.tsx'
 import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
+
+/** Ordre d'affichage : chaque Challenge sous son tableau parent. */
+const BRACKET_ORDER: BracketKey[] = ['P', 'CP', 'C', 'CC']
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`
 
@@ -179,9 +182,20 @@ export function BracketsTab({ view }: TabProps) {
             </p>
             {feedback}
           </section>
-          {brackets.map((b) => (
-            <BracketPanel key={b.key} bracket={b} editing={editing} onEdit={setEditing} onSave={save} queue={queue} />
-          ))}
+          {BRACKET_ORDER.map((key) => {
+            const b = brackets.find((x) => x.key === key)
+            if (b) return <BracketPanel key={key} bracket={b} editing={editing} onEdit={setEditing} onSave={save} queue={queue} />
+            const parent = key === 'CP' ? 'du Principal' : 'de la Consolante'
+            return (
+              <section key={key} className="panel" aria-label={`Tableau ${BRACKET_NAMES[key]}`}>
+                <h2>{BRACKET_NAMES[key]}</h2>
+                <p className="muted small">
+                  Formé dès que le premier tour {parent} est joué : les perdants de ses vrais matchs (pas les exempts), en têtes de série d’après le classement des
+                  poules.
+                </p>
+              </section>
+            )
+          })}
         </>
       )}
 
