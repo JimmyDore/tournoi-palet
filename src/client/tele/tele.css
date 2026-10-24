@@ -369,6 +369,17 @@
   color: var(--blanc);
 }
 
+/* Arrêté : figé et neutre, même s'il était en alerte ou en dépassement. */
+.clock.clock-tv[data-running='false'] {
+  background: var(--petrole-fonce);
+  box-shadow: none;
+}
+
+.clock.clock-tv[data-running='false'] .clock-time,
+.clock.clock-tv[data-running='false'] .clock-label {
+  color: var(--petrole-clair);
+}
+
 .tv-qr-block {
   display: flex;
   flex-direction: column;
@@ -377,7 +388,7 @@
 }
 
 .tv-qr {
-  width: min(17vw, 30vh);
+  width: min(15vw, 28vh);
   aspect-ratio: 1;
   background: var(--blanc);
   border-radius: 1vh;

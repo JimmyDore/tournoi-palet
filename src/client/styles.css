@@ -1045,3 +1045,13 @@ a {
 .clock-phone[data-state='overtime'] .clock-label {
   color: var(--blanc);
 }
+
+/* Arrêté : figé et neutre, même s'il était en alerte ou en dépassement. */
+.clock-phone[data-running='false'] {
+  background: var(--petrole-fonce);
+}
+
+.clock-phone[data-running='false'] .clock-time,
+.clock-phone[data-running='false'] .clock-label {
+  color: var(--petrole-clair);
+}

@@ -22,8 +22,7 @@ export function useServerNow(active = true): number {
 export function ClockDisplay({ clock, className }: { clock: ClockState; className: string }) {
   const now = useServerNow(clock.stoppedAt === null)
   const reading = clockReading(clock, now)
-  const label =
-    reading.state === 'overtime' ? 'Temps dépassé' : reading.running ? 'Temps restant' : 'Chrono arrêté'
+  const label = !reading.running ? 'Chrono arrêté' : reading.state === 'overtime' ? 'Temps dépassé' : 'Temps restant'
   return (
     <div className={`clock ${className}`} data-state={reading.state} data-running={reading.running} role="timer" aria-label={`${label} : ${reading.text}`}>
       <span className="clock-label">{label}</span>
