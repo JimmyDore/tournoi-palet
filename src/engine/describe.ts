@@ -132,21 +132,25 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
   }
 }
 
-/** « ; lancement des 1/2 du Principal, 1 en attente de planche » quand le score a complété un tour. */
+/** « ; lancement des 1/2 du Principal et des 1/2 du Challenge Principal, 1 en attente de planche » quand le score a complété un tour. */
 function launchedBy(before: EditionState, after: EditionState): string {
-  const pending = new Set(
+  // Déjà lancés avant (un Challenge qui vient d'apparaître n'y est pas encore).
+  const started = new Set(
     bracketsView(before)
       .brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))
-      .filter((m) => m.status === 'pending')
+      .filter((m) => m.status !== 'pending')
       .map((m) => m.id),
   )
-  const launched = bracketsView(after).live.filter((m) => pending.has(m.id))
+  const launched = bracketsView(after).live.filter((m) => !started.has(m.id))
   if (launched.length === 0) return ''
-  const [first] = launched
-  const what = first.roundName === 'Finale' ? 'de la finale' : `des ${first.roundName}`
+  const parts: string[] = []
+  for (const m of launched) {
+    const what = m.roundName === 'Finale' ? 'de la finale' : `des ${m.roundName}`
+    const part = `${what} ${m.bracket === 'C' ? 'de la' : 'du'} ${m.bracketName}`
+    if (!parts.includes(part)) parts.push(part)
+  }
   const waiting = launched.filter((m) => m.status === 'waiting-board').length
-  const of = first.bracket === 'C' ? 'de la' : 'du'
-  return ` ; lancement ${what} ${of} ${first.bracketName}${waiting ? `, ${waiting} en attente de planche` : ''}`
+  return ` ; lancement ${parts.join(' et ')}${waiting ? `, ${waiting} en attente de planche` : ''}`
 }
 
 function nameIn(state: EditionState, teamId: string): string {

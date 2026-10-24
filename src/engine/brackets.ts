@@ -1,3 +1,4 @@
+import { CHALLENGES, challengeEntrants } from './challenges.ts'
 import { numberedBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
 import { POOL_ROUNDS, poolStandings, poolView, type PoolTeamRef } from './pool.ts'
 import { shuffle } from './rng.ts'
@@ -172,16 +173,20 @@ export function seedOrder(size: number): number[] {
  * les autres équipes sont réparties au hasard sur les positions restantes.
  */
 function drawGrid(ranked: readonly string[], method: 'seeded' | 'random', ctx: Ctx): Slot[] {
-  const size = bracketSize(ranked.length)
-  const seeded = seedOrder(size).map((seed): Slot => ranked[seed - 1] ?? null)
+  const seeded = seededGrid(ranked)
   if (method === 'seeded') return seeded
-  const byes = size - ranked.length
+  const byes = seeded.length - ranked.length
   const exempted = new Set(ranked.slice(0, byes))
   const drawn = shuffle(ctx.rng, ranked.slice(byes))
   return seeded.map((slot) => {
     if (slot === null || exempted.has(slot)) return slot
     return drawn.shift()!
   })
+}
+
+/** Grille en têtes de série (les Challenges sont toujours placés ainsi). */
+function seededGrid(ranked: readonly string[]): Slot[] {
+  return seedOrder(bracketSize(ranked.length)).map((seed): Slot => ranked[seed - 1] ?? null)
 }
 
 // --- decide / evolve -------------------------------------------------------
@@ -313,10 +318,21 @@ interface DerivedMatch {
   winner: string | null
 }
 
-/** Grilles du 1er tour de chaque tableau, dans l'ordre d'affichage. Ticket 13 : y ajouter CP et CC. */
+/**
+ * Grilles du 1er tour de chaque tableau, dans l'ordre d'affichage (celui du
+ * classement final) : P, CP, C, CC. Un Challenge n'apparaît qu'une fois le
+ * 1er tour de son parent complet (voir challenges.ts).
+ */
 function bracketGrids(state: EditionState): [BracketKey, readonly Slot[]][] {
   const grids = state.brackets.grids
-  return grids ? [['P', grids.P], ['C', grids.C]] : []
+  if (!grids) return []
+  const poolOrder = poolStandings(state).map((s) => s.team.id)
+  return CHALLENGES.flatMap(([parent, challenge]): [BracketKey, readonly Slot[]][] => {
+    const grid = grids[parent as 'P' | 'C']
+    const firstRound = deriveBracket(state, parent, grid, new Set()).filter((m) => m.round === 1)
+    const entrants = challengeEntrants(firstRound, poolOrder)
+    return entrants ? [[parent, grid], [challenge, seededGrid(entrants)]] : [[parent, grid]]
+  })
 }
 
 /** Matchs lancés (tours synchronisés ou, ticket 14, « prêts »), d'après la trace des lancements. */
@@ -481,7 +497,7 @@ export interface SplitView {
 export interface BracketsView {
   split: SplitView
   generated: boolean
-  /** Principal et Consolante (puis les Challenges, ticket 13), vides avant la génération. */
+  /** Principal, Challenge Principal, Consolante, Challenge Consolante (un Challenge dès le 1er tour de son parent complet), vides avant la génération. */
   brackets: BracketView[]
   /** Matchs lancés sans score : sur leur planche (par planche croissante), puis en attente dans l'ordre de la file. */
   live: BracketMatchView[]
@@ -541,7 +557,8 @@ export function bracketsView(state: EditionState): BracketsView {
       if (!round) rounds.push((round = { round: m.round, name: m.roundName, matches: [] }))
       round.matches.push(m)
     }
-    const winner = final.get(key)?.winner ?? null
+    // Un tableau d'une seule équipe (petit Challenge) n'a pas de match : elle le gagne.
+    const winner = final.get(key)?.winner ?? (grid.length === 1 ? grid[0] : null)
     return { key, name: BRACKET_NAMES[key], teams, size: grid.length, byes: grid.length - teams, rounds, winner: ref(winner) }
   })
 
