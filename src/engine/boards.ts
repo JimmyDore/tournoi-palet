@@ -13,6 +13,9 @@
  *   let b = initialBoards([3, 1, 2])
  *   b = launchMatch(b, 'm1')   // planche 3
  *   b = releaseMatch(b, 'm1')  // match joué : la 3 est de nouveau libre
+ *
+ * Une correction qui change les équipes d'un match lancé l'annule
+ * (`cancelMatch`) : il rend sa planche et pourra être relancé.
  */
 export interface BoardAllocation {
   /** Planches dans l'ordre de priorité. */
@@ -54,11 +57,28 @@ export function releaseMatch(state: BoardAllocation, matchId: string): BoardAllo
   const finished = { ...state.finished, [matchId]: true as const }
   const board = state.boardOf[matchId]
   if (board === undefined) return { ...state, finished, waiting: state.waiting.filter((id) => id !== matchId) }
+  return handOver({ ...state, finished }, board)
+}
+
+/**
+ * Match annulé (ses équipes ont changé après une correction) : il redevient
+ * « pas lancé », comme s'il ne l'avait jamais été. Sa planche, s'il l'occupait
+ * encore, passe au premier en attente ; il sort de la file s'il y était.
+ */
+export function cancelMatch(state: BoardAllocation, matchId: string): BoardAllocation {
+  const { [matchId]: board, ...boardOf } = state.boardOf
+  const { [matchId]: done, ...finished } = state.finished
+  const cancelled = { ...state, boardOf, finished, waiting: state.waiting.filter((id) => id !== matchId) }
+  // Un match terminé avait déjà rendu sa planche.
+  return board === undefined || done ? cancelled : handOver(cancelled, board)
+}
+
+/** Une planche qui se libère : au premier match en attente, sinon parmi les libres. */
+function handOver(state: BoardAllocation, board: number): BoardAllocation {
   const [next, ...waiting] = state.waiting
-  if (next !== undefined) return { ...state, finished, waiting, boardOf: { ...state.boardOf, [next]: board } }
+  if (next !== undefined) return { ...state, waiting, boardOf: { ...state.boardOf, [next]: board } }
   const rank = (b: number) => state.order.indexOf(b)
-  const free = [...state.free, board].sort((a, b) => rank(a) - rank(b))
-  return { ...state, finished, free }
+  return { ...state, free: [...state.free, board].sort((a, b) => rank(a) - rank(b)) }
 }
 
 /** Planche actuelle d'un match en cours, ou celle où il a été joué ; `null` s'il attend. */

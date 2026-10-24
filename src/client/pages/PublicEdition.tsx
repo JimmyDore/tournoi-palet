@@ -5,7 +5,9 @@ import { ClockDisplay } from '../components/Clock.tsx'
 import { PublicHeader } from '../components/Brand.tsx'
 import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
+import { Link } from '../router.tsx'
 import { MyTeam, useChosenTeam } from './MyTeam.tsx'
+import { FinalRankingCard, PublicBrackets, Winners } from './PublicResults.tsx'
 import { CurrentMatches, PoolStandings } from './PoolSections.tsx'
 import './phone.css'
 
@@ -62,6 +64,17 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
           <EditionInfo view={view} />
           <Registrations view={view} />
         </>
+      ) : view.phase === 'after' ? (
+        <>
+          {/* Terminé : vainqueurs, classement final (avec les lots) et tableaux, en lecture seule. */}
+          <p className="phone-edition">
+            {view.name}
+            <span className="results-date">{formatDate(view.date)} · concours terminé</span>
+          </p>
+          <Winners view={view} />
+          <FinalRankingCard view={view} teamId={teamId} />
+          <PublicBrackets view={view} teamId={teamId} />
+        </>
       ) : (
         <>
           {/* Pendant : « mon équipe » en haut, puis les vues de la télé. Ticket 15 : tableaux et classement final. */}
@@ -76,11 +89,17 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
   )
 }
 
-function PublicShell({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
+export function PublicShell({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
+  const onPalmares = location.pathname === '/palmares'
   return (
     <div className="public">
       <PublicHeader compact={compact} />
       <main className="public-main">{children}</main>
+      {!onPalmares && (
+        <footer className="public-footer">
+          <Link href="/palmares">Palmarès des éditions passées</Link>
+        </footer>
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { AdminView } from '../engine/index.ts'
 import { buildApp } from './app.ts'
 
 const PASSWORD = 'secret-de-test'
@@ -164,4 +165,72 @@ describe('public', () => {
     }
     pub.ws.close()
   })
+
+  it('palmarès : une vraie édition terminée y figure avec son vainqueur, une édition de test jamais', async () => {
+    const cookie = await login()
+    const real = await finishedEdition(cookie, { name: 'Concours 2020', date: '2020-12-19' })
+    const test = await finishedEdition(cookie, { name: 'Répétition finie', date: '2021-01-09', isTest: true })
+    const token = test.view.previewToken as string
+    expect(real.view.phase).toBe('after')
+    expect(test.view.phase).toBe('after')
+
+    // Même avec le jeton de l'édition de test, la liste ne la contient pas.
+    for (const url of ['/api/public/editions', `/api/public/editions?k=${token}`]) {
+      const list = await api('GET', url)
+      expect(list.body).toContainEqual({ id: real.id, name: 'Concours 2020', date: '2020-12-19', winner: { id: real.view.ranking.rows[0].team.id, name: real.view.ranking.rows[0].team.name } })
+      expect(list.body.map((e: { id: string }) => e.id)).not.toContain(test.id)
+      expect(JSON.stringify(list.body)).not.toContain('Répétition')
+    }
+
+    const page = await api('GET', `/api/public/editions/${real.id}`)
+    expect(page.body).toMatchObject({ phase: 'after', ranking: { finished: true } })
+    expect(page.body.ranking.rows).toHaveLength(12)
+
+    expect((await api('GET', '/api/public/current')).body.id).not.toBe(test.id)
+    expect((await api('GET', `/api/public/editions/${test.id}`)).status).toBe(404)
+    expect(await subscribeError({ type: 'subscribe', editionId: test.id })).toBe('not_found')
+    expect(await subscribeError({ type: 'subscribe', editionId: test.id, k: 'mauvais' })).toBe('not_found')
+  })
 })
+
+/** Crée une édition et la joue jusqu'aux quatre finales par l'API de la console (12 équipes, l'équipe A gagne). */
+async function finishedEdition(cookie: string, settings: object) {
+  const created = await api('POST', '/api/admin/editions', cookie, { settings: { maxTeams: 12, ...settings } })
+  const id = created.body.id as string
+  let view: AdminView = created.body.view
+  const command = async (command: object) => {
+    const res = await api('POST', `/api/admin/editions/${id}/commands`, cookie, { command })
+    expect(res.body).toMatchObject({ ok: true })
+    view = res.body.view
+  }
+  for (let i = 1; i <= 12; i++) await command({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })
+  for (const team of view.teams) await command({ type: 'checkInTeam', teamId: team.id })
+  let k = 0
+  for (let round = 1; round <= 4; round++) {
+    await command({ type: 'drawPoolRound', round })
+    for (const m of view.pool.rounds.at(-1)!.matches.filter((m) => !m.score)) {
+      await command({ type: 'enterPoolScore', matchId: m.id, scoreA: 13, scoreB: ++k % 13 })
+    }
+  }
+  await command({ type: 'validateSplit', principalCount: view.brackets.split.proposedPrincipal })
+  await command({ type: 'generateBrackets' })
+  while (view.brackets.live.length > 0) await command({ type: 'enterBracketScore', matchId: view.brackets.live[0].id, scoreA: 13, scoreB: 6 })
+  return { id, view }
+}
+
+/** Abonnement public refusé : la raison renvoyée par le serveur. */
+function subscribeError(message: object): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`ws://${base}/ws`)
+    const timer = setTimeout(() => reject(new Error('pas de réponse')), 2000)
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(String(event.data))
+      if (msg.type === 'hello') ws.send(JSON.stringify(message))
+      else {
+        clearTimeout(timer)
+        ws.close()
+        resolve(msg.type === 'error' ? msg.reason : msg.type)
+      }
+    }
+  })
+}

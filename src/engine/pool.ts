@@ -420,7 +420,7 @@ export function poolStandings(state: EditionState): PoolStanding[] {
     if (r.bye) add(r.bye, bye.winner, bye.loser)
   }
   return [...rows.values()]
-    .map((row) => ({ ...row, diff: row.pointsFor - row.pointsAgainst, forfeit: row.team.id in state.forfeits }))
+    .map((row) => ({ ...row, diff: row.pointsFor - row.pointsAgainst, forfeit: state.forfeits[row.team.id]?.inBrackets === false }))
     .sort((x, y) => Number(x.forfeit) - Number(y.forfeit) || y.wins - x.wins || y.pointsFor - x.pointsFor || y.diff - x.diff || x.pointsAgainst - y.pointsAgainst || x.index - y.index)
     .map(({ index: _index, ...row }, i) => ({ rank: i + 1, ...row }))
 }

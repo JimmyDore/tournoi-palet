@@ -27,8 +27,8 @@ function bracketsReady(count: number, settings = {}): Harness {
 const bracket = (t: Harness, key: 'P' | 'C' | 'CP') => bracketsView(t.state).brackets.find((b) => b.key === key)!
 const round = (t: Harness, key: 'P' | 'C' | 'CP', n: number) => bracket(t, key).rounds[n - 1].matches
 /** Fait gagner l'équipe A (13-5) ou B (4-13). */
-const win = (t: Harness, m: BracketMatchView, side: 'A' | 'B' = 'A') =>
-  t.apply({ type: 'enterBracketScore', matchId: m.id, scoreA: side === 'A' ? 13 : 4, scoreB: side === 'A' ? 5 : 13 })
+const win = (t: Harness, m: BracketMatchView, side: 'A' | 'B' = 'A', confirm = false) =>
+  t.apply({ type: 'enterBracketScore', matchId: m.id, scoreA: side === 'A' ? 13 : 4, scoreB: side === 'A' ? 5 : 13, confirm })
 const winnerId = (m: BracketMatchView) => {
   if (m.status === 'bye') return (m.teamA ?? m.teamB)!.id
   return m.score!.a > m.score!.b ? m.teamA!.id : m.teamB!.id
@@ -130,7 +130,7 @@ describe('jalons de copie', () => {
     playRound(t, 'P', 2)
     expect(milestones(t.state)).toEqual([...poules, 'tableau-P-tour-1', 'tableau-P-tour-2', 'tableau-C-tour-1'])
     // Corriger un score d'un tour complet n'en crée pas de nouveau.
-    win(t, round(t, 'P', 2)[0], 'B')
+    win(t, round(t, 'P', 2)[0], 'B', true)
     expect(milestones(t.state)).toHaveLength(7)
   })
 })

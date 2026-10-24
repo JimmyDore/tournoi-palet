@@ -184,8 +184,8 @@ describe('score de premier tour', () => {
     expect(firstRound(t, 'P')[0]).toMatchObject({ score: { a: 9, b: 13 }, status: 'done', board: 1 })
     // La planche 1 passe au premier match en attente.
     expect(firstRound(t, 'C')[4]).toMatchObject({ board: 1, status: 'playing' })
-    // Corriger : même commande, pas de nouvelle planche libérée.
-    t.apply({ type: 'enterBracketScore', matchId: first.id, scoreA: 13, scoreB: 4 })
+    // Corriger : même commande (confirmée, le vainqueur change), pas de nouvelle planche libérée.
+    t.apply({ type: 'enterBracketScore', matchId: first.id, scoreA: 13, scoreB: 4, confirm: true })
     expect(firstRound(t, 'P')[0].score).toEqual({ a: 13, b: 4 })
     expect(firstRound(t, 'C')[5].status).toBe('waiting-board')
   })
@@ -209,7 +209,7 @@ describe('journal des tableaux', () => {
     const t = poolsDone(40).apply(validate(26)).apply(validate(27)).apply(generate)
     const first = firstRound(t, 'P').find((m) => m.status === 'playing')!
     t.apply({ type: 'enterBracketScore', matchId: first.id, scoreA: 13, scoreB: 6 })
-    t.apply({ type: 'enterBracketScore', matchId: first.id, scoreA: 5, scoreB: 13 })
+    t.apply({ type: 'enterBracketScore', matchId: first.id, scoreA: 5, scoreB: 13, confirm: true })
     const states = t.events.reduce((acc, e) => [...acc, evolve(acc.at(-1)!, e)], [initialState()])
     const lines = t.events.map((e, i) => describeEvent(states[i], states[i + 1], e)).slice(-5)
     const a = first.teamA!.name
@@ -219,7 +219,7 @@ describe('journal des tableaux', () => {
       { label: 'Répartition validée : 27 équipes en Principal, 13 en Consolante', before: '26 en Principal', after: '27 en Principal' },
       { label: 'Tableaux générés (têtes de série) : Principal de 27 (5 exempts), Consolante de 13 (3 exempts)' },
       { label: `Score saisi (Principal, 1/16, planche ${first.board}) : « ${a} » 13-6 « ${b} »` },
-      { label: `Score corrigé (Principal, 1/16, planche ${first.board})`, before: `« ${a} » 13-6 « ${b} »`, after: `« ${a} » 5-13 « ${b} »` },
+      { label: `Score corrigé (Principal, 1/16, planche ${first.board}) ; vainqueur changé, 1 match suivant modifié`, before: `« ${a} » 13-6 « ${b} »`, after: `« ${a} » 5-13 « ${b} »` },
     ])
   })
 })

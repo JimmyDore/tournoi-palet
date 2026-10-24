@@ -1,4 +1,4 @@
-import { bracketsView } from './brackets.ts'
+import { bracketsView, ofBracket } from './brackets.ts'
 import type { Event } from './engine.ts'
 import { poolView } from './pool.ts'
 import { SETTING_KEYS, SETTING_LABELS, formatSetting, type EditionSettings } from './settings.ts'
@@ -94,7 +94,14 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
         .map((m) => `« ${m.teamA.id === event.teamId ? m.teamB.name : m.teamA.name} »`)
       const parts = [`Équipe « ${name} » déclarée forfait`]
       if (won.length) parts.push(`${won.join(', ')} ${won.length > 1 ? 'gagnent' : 'gagne'} 13-0`)
-      parts.push('elle ne sera plus tirée')
+      if (!before.brackets.grids) {
+        parts.push('elle ne sera plus tirée')
+        return { label: parts.join(' ; ') }
+      }
+      const was = new Map(bracketMatchViews(before).map((m) => [m.id, m]))
+      const lost = bracketMatchViews(after).filter((m) => m.forfeit === event.teamId && was.get(m.id)?.forfeit !== event.teamId)
+      for (const m of lost) parts.push(`« ${(m.teamA?.id === event.teamId ? m.teamB : m.teamA)!.name} » gagne 13-0 (${m.bracketName}, ${m.roundName}) et avance`)
+      if (lost.length === 0) parts.push('son prochain match de tableau sera gagné 13-0 par l’adversaire')
       return { label: parts.join(' ; ') }
     }
     case 'forfeitCancelled':
@@ -122,7 +129,20 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       const line = (a: number, b: number) => `« ${nameIn(after, event.teamA)} » ${a}-${b} « ${nameIn(after, event.teamB)} »`
       const previous = find(before)?.score
       if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}${launchedBy(before, after)}` }
-      return { label: `Score corrigé (${where})`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
+      return { label: `Score corrigé (${where})${cascade(before, after, event.matchId)}`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
+    }
+    case 'readyMatchesLaunched': {
+      const was = new Set(bracketsView(before).live.map((m) => m.id))
+      const launched = bracketsView(after).live.filter((m) => !was.has(m.id))
+      const groups = new Map<string, number>()
+      for (const m of launched) {
+        const key = `${m.roundName === 'Finale' ? 'finale' : m.roundName} ${ofBracket(m.bracket)}`
+        groups.set(key, (groups.get(key) ?? 0) + 1)
+      }
+      const where = [...groups].map(([key, n]) => `${n} en ${key}`).join(', ')
+      const waiting = launched.filter((m) => m.status === 'waiting-board').length
+      const n = launched.length
+      return { label: `${n} match${n > 1 ? 's' : ''} prêt${n > 1 ? 's' : ''} lancé${n > 1 ? 's' : ''} (${where})${waiting ? ` ; ${waiting} en attente de planche` : ''}` }
     }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
@@ -151,6 +171,22 @@ function launchedBy(before: EditionState, after: EditionState): string {
   }
   const waiting = launched.filter((m) => m.status === 'waiting-board').length
   return ` ; lancement ${parts.join(' et ')}${waiting ? `, ${waiting} en attente de planche` : ''}`
+}
+
+const bracketMatchViews = (state: EditionState) => bracketsView(state).brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))
+
+/** « ; vainqueur changé, 2 scores effacés en aval » après une correction qui change la suite des tableaux. */
+function cascade(before: EditionState, after: EditionState, matchId: string): string {
+  const now = new Map(bracketMatchViews(after).map((m) => [m.id, m]))
+  const changed = bracketMatchViews(before).filter((m) => {
+    const next = now.get(m.id)
+    return m.id !== matchId && (next?.teamA?.id !== m.teamA?.id || next?.teamB?.id !== m.teamB?.id)
+  })
+  if (changed.length === 0) return ''
+  const erased = changed.filter((m) => m.score && !m.forfeit).length
+  return ` ; vainqueur changé, ${changed.length} match${changed.length > 1 ? 's' : ''} suivant${changed.length > 1 ? 's' : ''} modifié${changed.length > 1 ? 's' : ''}${
+    erased ? `, ${erased} score${erased > 1 ? 's' : ''} effacé${erased > 1 ? 's' : ''}` : ''
+  }`
 }
 
 function nameIn(state: EditionState, teamId: string): string {
