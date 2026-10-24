@@ -3,6 +3,7 @@ import type { AdminView } from '../../engine/index.ts'
 import { CheckInTab } from './CheckInTab.tsx'
 import { JournalTab } from './JournalTab.tsx'
 import { LinksTab } from './LinksTab.tsx'
+import { PoolsTab } from './PoolsTab.tsx'
 import { SettingsTab } from './SettingsTab.tsx'
 import { TeamsTab } from './TeamsTab.tsx'
 
@@ -19,6 +20,7 @@ export const EDITION_TABS: { key: string; label: string; Component: ComponentTyp
   { key: 'reglages', label: 'Réglages', Component: SettingsTab },
   { key: 'equipes', label: 'Équipes', Component: TeamsTab },
   { key: 'pointage', label: 'Pointage', Component: CheckInTab },
+  { key: 'poules', label: 'Poules', Component: PoolsTab },
   { key: 'liens', label: 'Liens publics', Component: LinksTab },
   { key: 'journal', label: 'Journal', Component: JournalTab },
 ]

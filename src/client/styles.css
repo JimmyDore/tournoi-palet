@@ -712,3 +712,181 @@ a {
 .nowrap {
   white-space: nowrap;
 }
+
+/* Poules (console) */
+
+.pool-feedback {
+  margin: 0.75rem 0 0;
+}
+
+.pool-missing {
+  margin: 0;
+  color: #7a5a00;
+  font-weight: 600;
+}
+
+.pool-subtitle {
+  margin: 1.25rem 0 0.25rem;
+  font-size: 1rem;
+  color: var(--petrole);
+}
+
+.pool-matches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pool-match {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2.6rem 1fr 6.5rem 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--blanc);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pool-match:hover,
+.pool-match:focus-visible {
+  border-color: var(--petrole);
+  outline: 2px solid var(--or);
+}
+
+.pool-match.is-missing {
+  background: var(--or-clair);
+  border-color: var(--or);
+}
+
+.pool-match.is-editing {
+  grid-template-columns: 2.6rem 1fr 6.5rem 1fr auto;
+  border-color: var(--petrole);
+  outline: 2px solid var(--or);
+  cursor: default;
+}
+
+.pool-board {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--blanc);
+  background: var(--petrole);
+  border-radius: 6px;
+  text-align: center;
+  padding: 0.15rem 0;
+}
+
+.pool-team {
+  font-weight: 600;
+  overflow-wrap: break-word;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Équipe A collée au score à droite, équipe B à gauche. */
+.pool-team:not(.pool-team-b) {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.pool-team.is-winner {
+  color: var(--vert);
+}
+
+.pool-score {
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pool-input {
+  width: 3.5rem;
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.3rem;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+}
+
+.pool-input:focus {
+  outline: 2px solid var(--or);
+  border-color: var(--petrole);
+}
+
+.pool-edit-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pool-bye {
+  margin: 1rem 0 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.standings {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.standings th,
+.standings td {
+  padding: 0.4rem 0.5rem;
+  text-align: right;
+  border-bottom: 1px solid var(--petrole-clair);
+}
+
+.standings .left {
+  text-align: left;
+}
+
+.standings th {
+  font-size: 0.85rem;
+  color: var(--gris);
+}
+
+@media (max-width: 40rem) {
+  .pool-match,
+  .pool-match.is-editing {
+    grid-template-columns: 2rem 1fr auto 1fr;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .pool-match.is-editing .pool-team {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .pool-match.is-editing .pool-team-b {
+    flex-direction: column-reverse;
+  }
+  .pool-edit-actions {
+    grid-column: 2 / -1;
+    justify-content: center;
+  }
+  .pool-match .badge {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.35rem;
+  }
+  .standings th,
+  .standings td {
+    padding: 0.35rem 0.25rem;
+    font-size: 0.85rem;
+  }
+}
