@@ -30,12 +30,14 @@ function subscribePublic(editionId: string, k?: string) {
   const ws = new WebSocket(`ws://${base}/ws`)
   const views: PublicView[] = []
   const raw: string[] = []
+  const serverNows: number[] = []
   let waiter: (() => void) | null = null
   ws.onmessage = (event) => {
     const msg = JSON.parse(String(event.data))
     if (msg.type === 'hello') ws.send(JSON.stringify({ type: 'subscribe', editionId, ...(k ? { k } : {}) }))
     if (msg.type === 'view') {
       views.push(msg.view)
+      serverNows.push(msg.serverNow)
       raw.push(String(event.data))
       waiter?.()
     }
@@ -55,7 +57,7 @@ function subscribePublic(editionId: string, k?: string) {
       waiter = check
       check()
     })
-  return { ws, raw, until }
+  return { ws, raw, serverNows, until }
 }
 
 beforeAll(async () => {
@@ -113,5 +115,23 @@ describe('direct télé et téléphone', () => {
     }
     tele.ws.close()
     phone.ws.close()
+  })
+
+  it('le chrono part à l’heure du serveur, que chaque écran reçoit pour se caler', async () => {
+    const created = await api('/api/admin/editions', { settings: { name: 'Chrono', date: '2026-12-19', gameMinutes: 25 } })
+    const id = created.body.id as string
+    const tele = subscribePublic(id)
+    await tele.until((v) => v.clock === null)
+    const before = Date.now()
+    const started = await api(`/api/admin/editions/${id}/commands`, { command: { type: 'startClock' } })
+    expect(started.status).toBe(200)
+    const view = await tele.until((v) => v.clock !== null)
+    expect(view.clock).toMatchObject({ durationMs: 25 * 60_000, stoppedAt: null })
+    expect(view.clock!.startedAt).toBeGreaterThanOrEqual(before)
+    expect(view.clock!.startedAt).toBeLessThanOrEqual(Date.now())
+    const serverNow = tele.serverNows.at(-1)!
+    expect(serverNow).toBeGreaterThanOrEqual(view.clock!.startedAt)
+    expect(serverNow).toBeLessThanOrEqual(Date.now())
+    tele.ws.close()
   })
 })

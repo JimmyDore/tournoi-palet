@@ -3,6 +3,7 @@ import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } 
 import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } from './forfeit.ts'
 import { decidePool, evolvePool, poolLockProblem, type PoolCommand, type PoolEvent } from './pool.ts'
 import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
+import { decideClock, evolveClock, type ClockCommand, type ClockEvent } from './clock.ts'
 import { decideTv, evolveTv, type TvCommand, type TvEvent } from './tv.ts'
 import { initialState, type EditionState } from './state.ts'
 import { refuse, type Ctx, type Decision } from './types.ts'
@@ -17,8 +18,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | TvCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | TvEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | TvCommand | ClockCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | TvEvent | ClockEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -49,6 +50,9 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
       return decideForfeit(state, command, ctx)
     case 'setTvView':
       return decideTv(state, command, ctx)
+    case 'startClock':
+    case 'stopClock':
+      return decideClock(state, command, ctx)
     default:
       return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
   }
@@ -76,6 +80,9 @@ export function evolve(state: EditionState, event: Event): EditionState {
       return evolveForfeit(state, event)
     case 'tvViewSet':
       return evolveTv(state, event)
+    case 'clockStarted':
+    case 'clockStopped':
+      return evolveClock(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)
