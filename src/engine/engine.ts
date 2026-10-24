@@ -53,6 +53,7 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'validateSplit':
     case 'generateBrackets':
     case 'enterBracketScore':
+    case 'launchReadyMatches':
       return decideBrackets(state, command, ctx)
     case 'setTvView':
       return decideTv(state, command, ctx)
@@ -91,6 +92,7 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'splitValidated':
     case 'bracketsGenerated':
     case 'bracketScoreEntered':
+    case 'readyMatchesLaunched':
       return evolveBrackets(state, event)
     case 'tvViewSet':
       return evolveTv(state, event)

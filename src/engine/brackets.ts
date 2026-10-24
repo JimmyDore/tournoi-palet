@@ -1,6 +1,7 @@
-import { numberedBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
+import { cancelMatch, numberedBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
 import { POOL_ROUNDS, poolStandings, poolView, type PoolTeamRef } from './pool.ts'
 import { shuffle } from './rng.ts'
+import { MAX_SCORE } from './settings.ts'
 import { scoreProblem, type Score } from './score.ts'
 import type { EditionState } from './state.ts'
 import { teamName } from './teams.ts'
@@ -56,7 +57,8 @@ export interface BracketsState {
   boardLog: BoardLogEntry[]
 }
 
-export type BoardLogEntry = { kind: 'launch' | 'release'; matchId: string }
+/** `reset` : le match redevient « pas lancé » (ses équipes ont changé après une correction, ou il n'en a plus deux). */
+export type BoardLogEntry = { kind: 'launch' | 'release' | 'reset'; matchId: string }
 
 export function initialBrackets(): BracketsState {
   return { principalCount: null, grids: null, generatedAt: null, scores: {}, boardLog: [] }
@@ -75,15 +77,25 @@ export interface GenerateBrackets {
   type: 'generateBrackets'
 }
 
-/** Saisit ou corrige le score d'un match de tableau. */
+/**
+ * Saisit ou corrige le score d'un match de tableau. Une correction qui change
+ * le vainqueur est refusée sans `confirm: true`, la raison disant son impact
+ * sur la suite (voir `correctionImpact`).
+ */
 export interface EnterBracketScore {
   type: 'enterBracketScore'
   matchId: string
   scoreA: number
   scoreB: number
+  confirm?: boolean
 }
 
-export type BracketCommand = ValidateSplit | GenerateBrackets | EnterBracketScore
+/** Lance tout match dont les deux équipes sont connues, sans attendre la fin de son tour. */
+export interface LaunchReadyMatches {
+  type: 'launchReadyMatches'
+}
+
+export type BracketCommand = ValidateSplit | GenerateBrackets | EnterBracketScore | LaunchReadyMatches
 
 // --- Événements ------------------------------------------------------------
 
@@ -111,7 +123,13 @@ export interface BracketScoreEntered {
   teamB: string
 }
 
-export type BracketEvent = SplitValidated | BracketsGenerated | BracketScoreEntered
+/** Les matchs prêts à ce moment-là sont lancés (dérivé dans `evolve`). */
+export interface ReadyMatchesLaunched {
+  type: 'readyMatchesLaunched'
+  at: number
+}
+
+export type BracketEvent = SplitValidated | BracketsGenerated | BracketScoreEntered | ReadyMatchesLaunched
 
 // --- Répartition -----------------------------------------------------------
 
@@ -217,6 +235,10 @@ export function decideBrackets(state: EditionState, command: BracketCommand, ctx
       const match = bracketMatches(state).find((m) => m.id === command.matchId)
       if (!match) return refuse("Ce match de tableau n'existe pas.")
       if (!match.teamA || !match.teamB) return refuse('Ce match n’a pas encore ses deux équipes.')
+      if (match.forfeit) {
+        const winner = match.forfeit === match.teamA ? match.teamB : match.teamA
+        return refuse(`« ${nameOf(state, match.forfeit)} » est forfait : « ${nameOf(state, winner)} » gagne ce match ${MAX_SCORE}-0.`)
+      }
       if (!match.launched) return refuse('Ce match n’est pas encore lancé.')
       const problem = scoreProblem(command.scoreA, command.scoreB)
       if (problem) return refuse(problem)
@@ -224,15 +246,16 @@ export function decideBrackets(state: EditionState, command: BracketCommand, ctx
       if (current && current.a === command.scoreA && current.b === command.scoreB && current.teamA === match.teamA && current.teamB === match.teamB) {
         return accept()
       }
-      return accept({
-        type: 'bracketScoreEntered',
-        at: ctx.now,
-        matchId: match.id,
-        scoreA: command.scoreA,
-        scoreB: command.scoreB,
-        teamA: match.teamA,
-        teamB: match.teamB,
-      })
+      if (command.confirm !== true) {
+        const warning = impactWarning(state, match, command.scoreA, command.scoreB)
+        if (warning) return refuse(warning)
+      }
+      return accept(scoreEvent(match, command.scoreA, command.scoreB, ctx.now))
+    }
+    case 'launchReadyMatches': {
+      if (!brackets.grids) return refuse('Les tableaux ne sont pas encore générés.')
+      if (readyMatches(state).length === 0) return refuse('Aucun match prêt : pas de match non lancé dont les deux équipes sont connues.')
+      return accept({ type: 'readyMatchesLaunched', at: ctx.now })
     }
   }
 }
@@ -249,7 +272,7 @@ export function evolveBrackets(state: EditionState, event: BracketEvent): Editio
     }
     case 'bracketScoreEntered': {
       const { matchId, scoreA, scoreB, teamA, teamB, at } = event
-      const released = brackets.boardLog.some((e) => e.kind === 'release' && e.matchId === matchId)
+      const released = launchStatus(state).get(matchId) === 'release'
       const scored = {
         ...state,
         brackets: {
@@ -259,9 +282,53 @@ export function evolveBrackets(state: EditionState, event: BracketEvent): Editio
         },
       }
       // La planche libérée d'abord : le tour suivant, s'il devient complet, la récupère.
-      return launch(scored, synchronizedLaunches(scored))
+      return settleBrackets(scored)
+    }
+    case 'readyMatchesLaunched':
+      return launch(state, readyMatches(state))
+  }
+}
+
+function scoreEvent(match: DerivedMatch, scoreA: number, scoreB: number, at: number): BracketScoreEntered {
+  return { type: 'bracketScoreEntered', at, matchId: match.id, scoreA, scoreB, teamA: match.teamA!, teamB: match.teamB! }
+}
+
+/**
+ * Remet les tableaux d'aplomb après un fait qui change des équipes ou des
+ * résultats (score saisi ou corrigé, forfait) :
+ *   - un score saisi avec d'autres équipes que celles du match est effacé ;
+ *   - un match lancé qui n'a plus ses deux équipes est annulé (planche rendue) ;
+ *   - un match déjà joué dont les équipes ont changé est annulé puis relancé ;
+ *   - un match en cours gagné par forfait libère sa planche ;
+ * puis les tours devenus complets sont lancés. Générique sur tous les matchs
+ * de tous les tableaux : équipes dérivées contre équipes mémorisées.
+ */
+export function settleBrackets(state: EditionState): EditionState {
+  if (!state.brackets.grids) return state
+  const status = launchStatus(state)
+  const scores = { ...state.brackets.scores }
+  const resets: BoardLogEntry[] = []
+  const releases: BoardLogEntry[] = []
+  const relaunch: string[] = []
+  for (const m of bracketMatches(state)) {
+    const stored = scores[m.id]
+    const stale = stored !== undefined && (stored.teamA !== m.teamA || stored.teamB !== m.teamB)
+    if (stale) delete scores[m.id]
+    const launched = status.get(m.id)
+    if (!launched) continue
+    if (m.bye || !m.teamA || !m.teamB) {
+      resets.push({ kind: 'reset', matchId: m.id })
+    } else if (launched === 'release' && (stale || !m.score)) {
+      // Joué avec d'autres équipes (score effacé, ou forfait d'une équipe qui n'y est plus) : à rejouer.
+      resets.push({ kind: 'reset', matchId: m.id })
+      if (!m.score) relaunch.push(m.id)
+    } else if (launched === 'launch' && m.score) {
+      releases.push({ kind: 'release', matchId: m.id })
     }
   }
+  const settled = { ...state, brackets: { ...state.brackets, scores, boardLog: [...state.brackets.boardLog, ...resets, ...releases] } }
+  const relaunched = launch(settled, relaunch)
+  return launch(relaunched, synchronizedLaunches(relaunched))
 }
 
 /**
@@ -278,9 +345,6 @@ export function bracketLockProblem(state: EditionState, command: { type: string;
       return 'Les tableaux sont générés : les poules sont closes.'
     case 'cancelForfeit':
       return 'Les tableaux sont générés : un forfait de poule ne peut plus être annulé.'
-    case 'declareForfeit':
-      // Ticket 14 : forfait en tableau.
-      return 'Le forfait en tableau n’est pas encore pris en charge.'
     case 'updateEdition':
       if (command.changes && typeof command.changes === 'object' && 'byeScore' in command.changes) {
         return 'Les tableaux sont générés : le score d’exempt des poules ne peut plus changer.'
@@ -307,8 +371,10 @@ interface DerivedMatch {
   /** Un des deux côtés est un exempt : pas de match, l'autre équipe avance. */
   bye: boolean
   launched: boolean
-  /** Score qui compte (saisi avec les équipes actuelles du match). */
+  /** Score qui compte : saisi avec les équipes actuelles du match, ou 13-0 par forfait. */
   score: Score | null
+  /** Équipe forfait qui perd ce match sans le jouer ; `null` sinon. */
+  forfeit: string | null
   /** Équipe qualifiée pour le tour suivant : celle de l'exempt, ou le vainqueur ; `null` tant que pas joué. */
   winner: string | null
 }
@@ -319,13 +385,18 @@ function bracketGrids(state: EditionState): [BracketKey, readonly Slot[]][] {
   return grids ? [['P', grids.P], ['C', grids.C]] : []
 }
 
-/** Matchs lancés (tours synchronisés ou, ticket 14, « prêts »), d'après la trace des lancements. */
-function launchedMatches(state: EditionState): Set<string> {
-  return new Set(state.brackets.boardLog.filter((e) => e.kind === 'launch').map((e) => e.matchId))
+/** Dernier état de lancement de chaque match lancé : `launch` (en cours ou en attente) ou `release` (terminé). */
+function launchStatus(state: EditionState): Map<string, 'launch' | 'release'> {
+  const status = new Map<string, 'launch' | 'release'>()
+  for (const e of state.brackets.boardLog) {
+    if (e.kind === 'reset') status.delete(e.matchId)
+    else status.set(e.matchId, e.kind)
+  }
+  return status
 }
 
 /** Tous les matchs d'un tableau, tour par tour : tour k+1, match i = vainqueurs des matchs 2i et 2i+1 du tour k. */
-function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly Slot[], launched: Set<string>): DerivedMatch[] {
+function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly Slot[], launched: ReadonlyMap<string, unknown>): DerivedMatch[] {
   const matches: DerivedMatch[] = []
   let sides: (string | null)[] = [...grid]
   for (let round = 1; sides.length >= 2; round++) {
@@ -336,9 +407,12 @@ function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly 
       const id = `${bracket}:${round}:${index}`
       // Seul le 1er tour a des exempts ; ensuite un côté vide est une équipe pas encore connue.
       const bye = round === 1 && (teamA === null || teamB === null)
-      const score = !bye && teamA && teamB ? validScore(state, id, teamA, teamB) : null
+      const entered = !bye && teamA && teamB ? validScore(state, id, teamA, teamB) : null
+      // Un match pas joué d'une équipe forfait est gagné 13-0 par l'adversaire, dès qu'il est connu.
+      const forfeit = !bye && teamA && teamB && !entered ? forfeitLoser(state, teamA, teamB) : null
+      const score = entered ?? (forfeit === null ? null : forfeit === teamA ? { a: 0, b: MAX_SCORE } : { a: MAX_SCORE, b: 0 })
       const winner = bye ? (teamA ?? teamB) : score ? (score.a > score.b ? teamA : teamB) : null
-      return { id, bracket, round, index, roundSize, teamA, teamB, bye, launched: launched.has(id), score, winner }
+      return { id, bracket, round, index, roundSize, teamA, teamB, bye, launched: launched.has(id), score, forfeit, winner }
     })
     matches.push(...current)
     sides = current.map((m) => m.winner)
@@ -348,7 +422,7 @@ function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly 
 
 /** Matchs des tableaux, tous les tours. */
 function bracketMatches(state: EditionState): DerivedMatch[] {
-  const launched = launchedMatches(state)
+  const launched = launchStatus(state)
   return bracketGrids(state).flatMap(([key, grid]) => deriveBracket(state, key, grid, launched))
 }
 
@@ -357,6 +431,14 @@ function validScore(state: EditionState, matchId: string, teamA: string, teamB: 
   const s = state.brackets.scores[matchId]
   if (!s || s.teamA !== teamA || s.teamB !== teamB) return null
   return { a: s.a, b: s.b }
+}
+
+/** Équipe forfait d'un match (la première déclarée si les deux le sont), ou `null`. */
+function forfeitLoser(state: EditionState, teamA: string, teamB: string): string | null {
+  const a = state.forfeits[teamA]
+  const b = state.forfeits[teamB]
+  if (a && b) return a.at <= b.at ? teamA : teamB
+  return a ? teamA : b ? teamB : null
 }
 
 /** Un tour est complet quand chacun de ses matchs a un qualifié (exempt ou score saisi). */
@@ -390,11 +472,18 @@ function launch(state: EditionState, matchIds: readonly string[]): EditionState 
   const entries = matchIds
     .filter((id) => {
       const m = matches.get(id)
-      return m !== undefined && !m.bye && m.teamA !== null && m.teamB !== null && !m.launched
+      return m !== undefined && !m.bye && m.teamA !== null && m.teamB !== null && !m.launched && m.score === null
     })
     .map((matchId): BoardLogEntry => ({ kind: 'launch', matchId }))
   if (entries.length === 0) return state
   return { ...state, brackets: { ...state.brackets, boardLog: [...state.brackets.boardLog, ...entries] } }
+}
+
+/** Matchs prêts : pas lancés, sans résultat, leurs deux équipes connues (« Lancer les matchs prêts »). */
+function readyMatches(state: EditionState): string[] {
+  return bracketMatches(state)
+    .filter((m) => !m.bye && m.teamA !== null && m.teamB !== null && !m.launched && m.score === null)
+    .map((m) => m.id)
 }
 
 /** Tours synchronisés : les matchs pas encore lancés d'un tour dont le tour précédent est complet (le 1er tour d'emblée). */
@@ -411,7 +500,9 @@ function synchronizedLaunches(state: EditionState): string[] {
 /** Planches des tableaux, rejouées : la plus petite libre, sinon la file d'attente. */
 function bracketBoards(state: EditionState): BoardAllocation {
   let boards = numberedBoards(state.edition!.settings.boards)
-  for (const e of state.brackets.boardLog) boards = e.kind === 'launch' ? launchMatch(boards, e.matchId) : releaseMatch(boards, e.matchId)
+  for (const e of state.brackets.boardLog) {
+    boards = e.kind === 'launch' ? launchMatch(boards, e.matchId) : e.kind === 'release' ? releaseMatch(boards, e.matchId) : cancelMatch(boards, e.matchId)
+  }
   return boards
 }
 
@@ -443,6 +534,8 @@ export interface BracketMatchView {
   teamA: BracketTeamRef | null
   teamB: BracketTeamRef | null
   score: Score | null
+  /** Équipe forfait qui perd ce match (13-0) sans le jouer ; `null` sinon. */
+  forfeit: string | null
   status: BracketMatchStatus
 }
 
@@ -485,6 +578,8 @@ export interface BracketsView {
   brackets: BracketView[]
   /** Matchs lancés sans score : sur leur planche (par planche croissante), puis en attente dans l'ordre de la file. */
   live: BracketMatchView[]
+  /** Matchs pas encore lancés dont les deux équipes sont connues (« Lancer les matchs prêts »). */
+  ready: number
 }
 
 export function bracketsView(state: EditionState): BracketsView {
@@ -510,7 +605,7 @@ export function bracketsView(state: EditionState): BracketsView {
   }
 
   const grids = state.brackets.grids
-  if (!grids) return { split, generated: false, brackets: [], live: [] }
+  if (!grids) return { split, generated: false, brackets: [], live: [], ready: 0 }
 
   const boards = bracketBoards(state)
   const matches = bracketMatches(state)
@@ -528,6 +623,7 @@ export function bracketsView(state: EditionState): BracketsView {
       teamA: ref(m.teamA),
       teamB: ref(m.teamB),
       score,
+      forfeit: m.forfeit,
       status: m.bye ? 'bye' : score ? 'done' : !m.launched ? 'pending' : board === null ? 'waiting-board' : 'playing',
     }
   })
@@ -550,5 +646,72 @@ export function bracketsView(state: EditionState): BracketsView {
     .filter((m) => m.status === 'playing' || m.status === 'waiting-board')
     .sort((x, y) => (x.board ?? Infinity) - (y.board ?? Infinity) || queue(x.id) - queue(y.id))
 
-  return { split, generated: true, brackets, live }
+  return { split, generated: true, brackets, live, ready: readyMatches(state).length }
+}
+
+// --- Impact d'une correction -----------------------------------------------
+
+/** « du Principal », « de la Consolante ». */
+export function ofBracket(key: BracketKey): string {
+  return `${key === 'C' ? 'de la' : 'du'} ${BRACKET_NAMES[key]}`
+}
+
+/** « en 1/2 du Principal », « en finale de la Consolante ». */
+function inRound(m: BracketMatchView): string {
+  return `en ${m.roundName === 'Finale' ? 'finale' : m.roundName} ${ofBracket(m.bracket)}`
+}
+
+const viewMatches = (state: EditionState) => bracketsView(state).brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))
+
+export interface CorrectionImpact {
+  /** Le vainqueur du match change : la correction demande confirmation. */
+  winnerChanged: boolean
+  /** Ce qui change dans la suite des tableaux, en phrases (« X remplace Y en 1/8 du Principal, planche 4 ; le score 13-9 déjà saisi sera effacé »). */
+  changes: string[]
+}
+
+/**
+ * Ce que changerait la correction du score d'un match déjà joué : les matchs
+ * suivants (de tous les tableaux) dont une équipe change, et les scores déjà
+ * saisis qui seraient effacés. Rien si le vainqueur reste le même.
+ */
+export function correctionImpact(state: EditionState, matchId: string, scoreA: number, scoreB: number): CorrectionImpact {
+  const none: CorrectionImpact = { winnerChanged: false, changes: [] }
+  const match = bracketMatches(state).find((m) => m.id === matchId)
+  if (!match?.score || match.forfeit || scoreA === scoreB) return none
+  if (scoreA > scoreB === match.score.a > match.score.b) return none
+  const before = new Map(viewMatches(state).map((m) => [m.id, m]))
+  const after = evolveBrackets(state, scoreEvent(match, scoreA, scoreB, 0))
+  const changes = viewMatches(after).flatMap((m) => {
+    const was = before.get(m.id)
+    if (!was || m.id === matchId) return []
+    const sides: [BracketTeamRef | null, BracketTeamRef | null][] = [
+      [was.teamA, m.teamA],
+      [was.teamB, m.teamB],
+    ]
+    const moves = sides.flatMap(([x, y]) => {
+      if (x?.id === y?.id) return []
+      if (x && y) return [`« ${y.name} » remplace « ${x.name} »`]
+      return x ? [`« ${x.name} » n’est plus qualifiée`] : [`« ${y!.name} » est qualifiée`]
+    })
+    if (moves.length === 0) return []
+    const board = was.board ? `, planche ${was.board}` : ''
+    const erased = was.score && !was.forfeit ? ` ; le score ${was.score.a}-${was.score.b} déjà saisi sera effacé` : ''
+    return [`${moves.join(' et ')} ${inRound(was)}${board}${erased}`]
+  })
+  return { winnerChanged: true, changes }
+}
+
+/** Raison du refus d'une correction qui change le vainqueur sans confirmation ; `null` si le vainqueur ne change pas. */
+function impactWarning(state: EditionState, match: DerivedMatch, scoreA: number, scoreB: number): string | null {
+  const impact = correctionImpact(state, match.id, scoreA, scoreB)
+  if (!impact.winnerChanged) return null
+  const [winner, loser] = scoreA > scoreB ? [match.teamA!, match.teamB!] : [match.teamB!, match.teamA!]
+  const what = impact.changes.length ? impact.changes.map((c) => `${c}.`).join(' ') : 'Aucun autre match n’est touché.'
+  return `Le vainqueur change : « ${nameOf(state, winner)} » au lieu de « ${nameOf(state, loser)} ». ${what} Confirmez pour corriger.`
+}
+
+function nameOf(state: EditionState, teamId: string): string {
+  const team = state.teams.find((t) => t.id === teamId)
+  return team ? teamName(team) : teamId
 }

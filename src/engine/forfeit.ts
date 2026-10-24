@@ -1,3 +1,4 @@
+import { settleBrackets } from './brackets.ts'
 import { forfeitInPool, isPoolTeam, unforfeitInPool } from './pool.ts'
 import type { EditionState } from './state.ts'
 import { teamName } from './teams.ts'
@@ -5,12 +6,16 @@ import { accept, refuse, type Ctx, type Decision } from './types.ts'
 
 // Forfait d'une équipe : un seul fait, valable en poule comme en tableau.
 // En poule, ses matchs sans score sont gagnés 13-0 par l'adversaire et elle
-// n'est plus tirée. Les tableaux (ticket 14) liront le même fait.
+// n'est plus tirée. En tableau, son prochain match pas joué est gagné 13-0 par
+// l'adversaire (dès qu'il est connu), et ainsi de suite (Challenge compris) :
+// elle est classée à sa place d'élimination, et garde son rang des poules.
 
 export interface Forfeit {
   at: number
   /** Nombre de parties de poule tirées au moment du forfait. */
   afterRound: number
+  /** Déclaré une fois les tableaux générés : le classement des poules n'en tient pas compte. */
+  inBrackets: boolean
 }
 
 // --- Commandes -------------------------------------------------------------
@@ -69,8 +74,8 @@ export function decideForfeit(state: EditionState, command: ForfeitCommand, ctx:
 export function evolveForfeit(state: EditionState, event: ForfeitEvent): EditionState {
   switch (event.type) {
     case 'forfeitDeclared': {
-      const forfeits = { ...state.forfeits, [event.teamId]: { at: event.at, afterRound: state.pool.rounds.length } }
-      return forfeitInPool({ ...state, forfeits }, event.teamId)
+      const forfeits = { ...state.forfeits, [event.teamId]: { at: event.at, afterRound: state.pool.rounds.length, inBrackets: state.brackets.grids !== null } }
+      return settleBrackets(forfeitInPool({ ...state, forfeits }, event.teamId))
     }
     case 'forfeitCancelled': {
       const { [event.teamId]: _cancelled, ...forfeits } = state.forfeits
