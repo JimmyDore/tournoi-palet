@@ -7,6 +7,8 @@ export type { RegisterTeam, UpdateTeam, WithdrawTeam, TeamRegistered, TeamUpdate
 export { TEAM_FIELD_LABELS, TWO_LICENSED_WARNING, teamName, teamWarnings } from './teams.ts'
 export type { AbsentTeamReplaced, CheckInTeam, ReplaceAbsentTeam, TeamCheckInUndone, TeamCheckedIn, UndoCheckIn } from './checkin.ts'
 export type { DrawPoolRound, EnterPoolScore, PoolRoundDrawn, PoolRoundRemoved, PoolScoreEntered, RemovePoolRound } from './pool.ts'
+export type { FillRandomScores, GenerateFakeTeams, OpenMatch } from './rehearsal.ts'
+export { openMatches } from './rehearsal.ts'
 export type { CancelForfeit, DeclareForfeit, Forfeit, ForfeitCancelled, ForfeitDeclared } from './forfeit.ts'
 export type { NextMatch, PoolMatchStatus, PoolMatchView, PoolRoundView, PoolStanding, PoolTeamRef, PoolView } from './pool.ts'
 export { POOL_ROUNDS, nextMatchOf, poolStandings, poolView } from './pool.ts'
