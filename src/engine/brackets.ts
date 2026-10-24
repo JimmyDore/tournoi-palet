@@ -1,3 +1,4 @@
+import { CHALLENGES, challengeEntrants } from './challenges.ts'
 import { cancelMatch, numberedBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
 import { POOL_ROUNDS, poolStandings, poolView, type PoolTeamRef } from './pool.ts'
 import { shuffle } from './rng.ts'
@@ -190,16 +191,20 @@ export function seedOrder(size: number): number[] {
  * les autres équipes sont réparties au hasard sur les positions restantes.
  */
 function drawGrid(ranked: readonly string[], method: 'seeded' | 'random', ctx: Ctx): Slot[] {
-  const size = bracketSize(ranked.length)
-  const seeded = seedOrder(size).map((seed): Slot => ranked[seed - 1] ?? null)
+  const seeded = seededGrid(ranked)
   if (method === 'seeded') return seeded
-  const byes = size - ranked.length
+  const byes = seeded.length - ranked.length
   const exempted = new Set(ranked.slice(0, byes))
   const drawn = shuffle(ctx.rng, ranked.slice(byes))
   return seeded.map((slot) => {
     if (slot === null || exempted.has(slot)) return slot
     return drawn.shift()!
   })
+}
+
+/** Grille en têtes de série (les Challenges sont toujours placés ainsi). */
+function seededGrid(ranked: readonly string[]): Slot[] {
+  return seedOrder(bracketSize(ranked.length)).map((seed): Slot => ranked[seed - 1] ?? null)
 }
 
 // --- decide / evolve -------------------------------------------------------
@@ -379,10 +384,21 @@ interface DerivedMatch {
   winner: string | null
 }
 
-/** Grilles du 1er tour de chaque tableau, dans l'ordre d'affichage. Ticket 13 : y ajouter CP et CC. */
+/**
+ * Grilles du 1er tour de chaque tableau, dans l'ordre d'affichage (celui du
+ * classement final) : P, CP, C, CC. Un Challenge n'apparaît qu'une fois le
+ * 1er tour de son parent complet (voir challenges.ts).
+ */
 function bracketGrids(state: EditionState): [BracketKey, readonly Slot[]][] {
   const grids = state.brackets.grids
-  return grids ? [['P', grids.P], ['C', grids.C]] : []
+  if (!grids) return []
+  const poolOrder = poolStandings(state).map((s) => s.team.id)
+  return CHALLENGES.flatMap(([parent, challenge]): [BracketKey, readonly Slot[]][] => {
+    const grid = grids[parent as 'P' | 'C']
+    const firstRound = deriveBracket(state, parent, grid, new Set()).filter((m) => m.round === 1)
+    const entrants = challengeEntrants(firstRound, poolOrder)
+    return entrants ? [[parent, grid], [challenge, seededGrid(entrants)]] : [[parent, grid]]
+  })
 }
 
 /** Dernier état de lancement de chaque match lancé : `launch` (en cours ou en attente) ou `release` (terminé). */
@@ -396,7 +412,7 @@ function launchStatus(state: EditionState): Map<string, 'launch' | 'release'> {
 }
 
 /** Tous les matchs d'un tableau, tour par tour : tour k+1, match i = vainqueurs des matchs 2i et 2i+1 du tour k. */
-function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly Slot[], launched: ReadonlyMap<string, unknown>): DerivedMatch[] {
+function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly Slot[], launched: { has(matchId: string): boolean }): DerivedMatch[] {
   const matches: DerivedMatch[] = []
   let sides: (string | null)[] = [...grid]
   for (let round = 1; sides.length >= 2; round++) {
@@ -574,7 +590,7 @@ export interface SplitView {
 export interface BracketsView {
   split: SplitView
   generated: boolean
-  /** Principal et Consolante (puis les Challenges, ticket 13), vides avant la génération. */
+  /** Principal, Challenge Principal, Consolante, Challenge Consolante (un Challenge dès le 1er tour de son parent complet), vides avant la génération. */
   brackets: BracketView[]
   /** Matchs lancés sans score : sur leur planche (par planche croissante), puis en attente dans l'ordre de la file. */
   live: BracketMatchView[]
@@ -637,7 +653,8 @@ export function bracketsView(state: EditionState): BracketsView {
       if (!round) rounds.push((round = { round: m.round, name: m.roundName, matches: [] }))
       round.matches.push(m)
     }
-    const winner = final.get(key)?.winner ?? null
+    // Un tableau d'une seule équipe (petit Challenge) n'a pas de match : elle le gagne.
+    const winner = final.get(key)?.winner ?? (grid.length === 1 ? grid[0] : null)
     return { key, name: BRACKET_NAMES[key], teams, size: grid.length, byes: grid.length - teams, rounds, winner: ref(winner) }
   })
 
@@ -689,12 +706,17 @@ export function correctionImpact(state: EditionState, matchId: string, scoreA: n
       [was.teamA, m.teamA],
       [was.teamB, m.teamB],
     ]
-    const moves = sides.flatMap(([x, y]) => {
-      if (x?.id === y?.id) return []
-      if (x && y) return [`« ${y.name} » remplace « ${x.name} »`]
-      return x ? [`« ${x.name} » n’est plus qualifiée`] : [`« ${y!.name} » est qualifiée`]
-    })
-    if (moves.length === 0) return []
+    const changed = sides.filter(([x, y]) => x?.id !== y?.id)
+    if (changed.length === 0) return []
+    // Les deux équipes changent (Challenge refait) : l'affiche entière.
+    const versus = (a: BracketTeamRef | null, b: BracketTeamRef | null) => `« ${a?.name ?? 'à déterminer'} » contre « ${b?.name ?? 'à déterminer'} »`
+    const moves =
+      changed.length === 2 && m.teamA && m.teamB && was.teamA && was.teamB
+        ? [`${versus(m.teamA, m.teamB)} au lieu de ${versus(was.teamA, was.teamB)}`]
+        : changed.map(([x, y]) => {
+            if (x && y) return `« ${y.name} » remplace « ${x.name} »`
+            return x ? `« ${x.name} » n’est plus qualifiée` : `« ${y!.name} » est qualifiée`
+          })
     const board = was.board ? `, planche ${was.board}` : ''
     const erased = was.score && !was.forfeit ? ` ; le score ${was.score.a}-${was.score.b} déjà saisi sera effacé` : ''
     return [`${moves.join(' et ')} ${inRound(was)}${board}${erased}`]

@@ -161,12 +161,12 @@ describe('répétition des 4 parties de poule', () => {
       const p = view.brackets.find((b) => b.key === 'P')!
       expect(p.rounds[0].matches.find((m) => m.id === first.id)!.score).toEqual({ a: 3, b: 13 })
       expect(p.rounds[0].matches.every((m) => m.status === 'done')).toBe(true)
-      // Les 1/8 du Principal et les 1/4 de la Consolante viennent d'être lancés, pas encore remplis.
+      // Les 1/8 du Principal et du Challenge Principal, les 1/4 de la Consolante et du Challenge Consolante viennent d'être lancés, pas encore remplis.
       expect(p.rounds[1].matches.every((m) => m.status === 'playing' && !m.score)).toBe(true)
-      expect(view.live).toHaveLength(8 + 4)
+      expect(view.live).toHaveLength(8 + 8 + 4 + 4)
     })
 
-    it.each([16, 33, 40, 48, 52, 64])('%i équipes : de bout en bout jusqu’aux finales du Principal et de la Consolante', (count) => {
+    it.each([16, 33, 40, 48, 52, 64])('%i équipes : de bout en bout jusqu’aux finales des quatre tableaux', (count) => {
       const t = bracketsStarted(count)
       let clicks = 0
       while (bracketsView(t.state).live.length > 0) {
@@ -175,9 +175,13 @@ describe('répétition des 4 parties de poule', () => {
       }
       const { brackets } = bracketsView(t.state)
       const rounds = (key: string) => brackets.find((b) => b.key === key)!.rounds.length
-      // Un clic par tour du plus long tableau (les deux avancent ensemble).
-      expect(clicks).toBe(Math.max(rounds('P'), rounds('C')))
+      // Un clic par tour du plus long tableau (ils avancent ensemble, un Challenge un tour après son parent).
+      expect(brackets.map((b) => b.key)).toEqual(['P', 'CP', 'C', 'CC'])
+      expect(clicks).toBe(Math.max(rounds('P'), rounds('C'), rounds('CP') + 1, rounds('CC') + 1))
       for (const b of brackets) {
+        expect(b.winner).not.toBeNull()
+        // Un Challenge d'une seule équipe n'a pas de match.
+        if (b.rounds.length === 0) continue
         const final = b.rounds.at(-1)!.matches[0]
         expect(final).toMatchObject({ roundName: 'Finale', status: 'done' })
         expect(b.winner).not.toBeNull()

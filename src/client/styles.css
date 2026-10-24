@@ -1233,3 +1233,25 @@ a {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+/* Onglet Classement */
+.badge-final {
+  background: #e3f3e8;
+  color: var(--vert);
+  border: 1px solid var(--vert);
+}
+
+.ranking tr.is-provisional td {
+  color: var(--gris);
+}
+
+.ranking tr.is-provisional td strong {
+  color: inherit;
+}
+
+/* Téléphone : la place, l’équipe, le parcours et le statut suffisent. */
+@media (max-width: 30rem) {
+  .ranking .ranking-pool {
+    display: none;
+  }
+}

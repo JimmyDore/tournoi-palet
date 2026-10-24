@@ -24,8 +24,8 @@ function bracketsReady(count: number, settings = {}): Harness {
   return t.apply({ type: 'generateBrackets' })
 }
 
-const bracket = (t: Harness, key: 'P' | 'C') => bracketsView(t.state).brackets.find((b) => b.key === key)!
-const round = (t: Harness, key: 'P' | 'C', n: number) => bracket(t, key).rounds[n - 1].matches
+const bracket = (t: Harness, key: 'P' | 'C' | 'CP') => bracketsView(t.state).brackets.find((b) => b.key === key)!
+const round = (t: Harness, key: 'P' | 'C' | 'CP', n: number) => bracket(t, key).rounds[n - 1].matches
 /** Fait gagner l'équipe A (13-5) ou B (4-13). */
 const win = (t: Harness, m: BracketMatchView, side: 'A' | 'B' = 'A', confirm = false) =>
   t.apply({ type: 'enterBracketScore', matchId: m.id, scoreA: side === 'A' ? 13 : 4, scoreB: side === 'A' ? 5 : 13, confirm })
@@ -102,20 +102,20 @@ describe('tours synchronisés', () => {
       expect(final.roundName).toBe('Finale')
       expect(bracket(t, key).winner!.id).toBe(winnerId(final))
     }
-    // Plus aucun match en cours, toutes les planches libres.
-    expect(bracketsView(t.state).live).toEqual([])
+    // Plus aucun match du Principal ni de la Consolante en cours (restent les Challenges).
+    expect(bracketsView(t.state).live.filter((m) => m.bracket === 'P' || m.bracket === 'C')).toEqual([])
   })
 })
 
 describe('journal', () => {
-  it('le score qui complète un tour annonce le lancement du suivant', () => {
+  it('le score qui complète un tour annonce le lancement du suivant, et du Challenge', () => {
     const t = bracketsReady(12, { boards: 3 })
     const [m0, m1, m2, m3] = round(t, 'P', 1)
     for (const m of [m0, m1, m2]) win(t, m)
     win(t, m3)
     const before = replay(t.events.slice(0, -1))
     const line = describeEvent(before, t.state, t.events.at(-1)!)
-    expect(line.label).toBe(`Score saisi (Principal, 1/4, planche 1) : « ${m3.teamA!.name} » 13-5 « ${m3.teamB!.name} » ; lancement des 1/2 du Principal, 1 en attente de planche`)
+    expect(line.label).toBe(`Score saisi (Principal, 1/4, planche 1) : « ${m3.teamA!.name} » 13-5 « ${m3.teamB!.name} » ; lancement des 1/2 du Principal et des 1/2 du Challenge Principal, 3 en attente de planche`)
   })
 })
 
@@ -159,10 +159,15 @@ describe('planches', () => {
       [2, 'playing'],
       [4, 'playing'],
     ])
-    // Consolante : ses 1/2 finissent, sa finale attend une planche.
+    // Le Challenge Principal (4 perdants), lancé en même temps, attend derrière : il prend les planches de la Consolante.
     win(t, round(t, 'C', 1)[0])
     win(t, round(t, 'C', 1)[1])
-    expect(round(t, 'C', 2)[0]).toMatchObject({ board: 1, status: 'playing' })
+    expect(round(t, 'CP', 1).map((m) => [m.board, m.status])).toEqual([
+      [3, 'playing'],
+      [1, 'playing'],
+    ])
+    // La finale de la Consolante attend la prochaine planche libre, file commune à tous les tableaux.
+    expect(round(t, 'C', 2)[0]).toMatchObject({ board: null, status: 'waiting-board' })
   })
 
   it('un match en attente garde sa place dans la file, même d’un tour suivant', () => {
@@ -173,8 +178,8 @@ describe('planches', () => {
     win(t, round(t, 'P', 1)[1])
     win(t, round(t, 'P', 1)[2])
     win(t, round(t, 'P', 1)[3])
-    // Les 1/2 du Principal arrivent derrière la Consolante.
-    expect(order()).toEqual(['P:2:0', 'P:2:1'])
+    // Les 1/2 du Principal et le Challenge Principal arrivent derrière la Consolante.
+    expect(order()).toEqual(['P:2:0', 'P:2:1', 'CP:1:0', 'CP:1:1'])
     expect(round(t, 'C', 1).map((m) => m.board)).toEqual([1, 2])
   })
 })

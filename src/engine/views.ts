@@ -4,6 +4,7 @@ import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
 import { poolView, type PoolStanding, type PoolView } from './pool.ts'
+import { finalRanking, type FinalRanking } from './ranking.ts'
 import { requireEdition, type EditionState } from './state.ts'
 import type { TvState } from './tv.ts'
 import { teamName, teamStatuses, teamWarnings, type TeamFields, type TeamStatus } from './teams.ts'
@@ -13,9 +14,10 @@ export { participants }
 /** Avant le jour J, tournoi en cours, tournoi terminé. */
 export type Phase = 'before' | 'during' | 'after'
 
-/** Pendant dès la partie 1 lancée. À compléter par les tableaux (finale jouée → après). */
+/** Pendant dès la partie 1 lancée ; après une fois les finales des quatre tableaux jouées. */
 export function phaseOf(state: EditionState): Phase {
-  return state.pool.rounds.length > 0 ? 'during' : 'before'
+  if (state.pool.rounds.length === 0) return 'before'
+  return state.brackets.grids && finalRanking(state).finished ? 'after' : 'during'
 }
 
 /**
@@ -45,6 +47,8 @@ export interface PublicView {
   pool: PoolView
   /** Répartition, tableaux, et matchs de tableau en cours (`brackets.live`) pour la télé. */
   brackets: BracketsView
+  /** Classement final de 1 à N (provisoire pendant les tableaux) : noms d'équipe seulement. */
+  ranking: FinalRanking
   /** Vue imposée à la télé (`auto` : rotation). */
   tv: TvState
   /** Chrono (heures du serveur) : chaque écran calcule le temps restant avec `clockReading`. */
@@ -69,6 +73,8 @@ export function publicView(state: EditionState): PublicView {
   const { id, settings: s } = requireEdition(state)
   const { registered, waitlist, placesLeft } = lineup(state)
   const named = (t: TeamFields & { id: string }): PublicTeam => ({ id: t.id, name: teamName(t) })
+  const brackets = bracketsView(state)
+  const ranking = finalRanking(state, brackets)
   return {
     id,
     name: s.name,
@@ -82,15 +88,22 @@ export function publicView(state: EditionState): PublicView {
     maxTeams: s.maxTeams,
     gameMinutes: s.gameMinutes,
     isTest: s.isTest,
-    phase: phaseOf(state),
+    phase: phase(state, ranking),
     teams: registered.map(named),
     waitlist: waitlist.map(named),
     placesLeft,
     pool: poolView(state),
-    brackets: bracketsView(state),
+    brackets,
+    ranking,
     tv: state.tv,
     clock: state.clock,
   }
+}
+
+/** `phaseOf` sans recalculer le classement déjà là. */
+function phase(state: EditionState, ranking: FinalRanking): Phase {
+  if (state.pool.rounds.length === 0) return 'before'
+  return ranking.finished ? 'after' : 'during'
 }
 
 /** Fiche équipe complète, pour la console. */
@@ -125,6 +138,8 @@ export interface AdminView {
   placesLeft: number
   pool: PoolView
   brackets: BracketsView
+  /** Classement final de 1 à N, provisoire tant que des places restent à jouer. */
+  ranking: FinalRanking
   tv: TvState
   clock: ClockState | null
 }
@@ -132,6 +147,8 @@ export interface AdminView {
 export function adminView(state: EditionState): AdminView {
   const { id, settings, previewToken, createdAt } = requireEdition(state)
   const { statuses, registered, waitlist, placesLeft } = lineup(state)
+  const brackets = bracketsView(state)
+  const ranking = finalRanking(state, brackets)
   const teams = [...registered, ...waitlist].map(({ name, ...team }): AdminTeam => {
     const status = statuses.get(team.id)!
     return {
@@ -148,14 +165,15 @@ export function adminView(state: EditionState): AdminView {
     settings,
     previewToken,
     createdAt,
-    phase: phaseOf(state),
+    phase: phase(state, ranking),
     teams,
     registeredCount: registered.length,
     checkedInCount: participants(state).length,
     waitlistCount: waitlist.length,
     placesLeft,
     pool: poolView(state),
-    brackets: bracketsView(state),
+    brackets,
+    ranking,
     tv: state.tv,
     clock: state.clock,
   }
@@ -174,13 +192,13 @@ export interface ExportView {
   pool: PoolView
   poolStandings: PoolStanding[]
   brackets: BracketsView
-  // Ticket 13 : ajouter le classement final quand il existera.
+  ranking: FinalRanking
   milestones: string[]
 }
 
 export function exportView(state: EditionState): ExportView {
-  const { id, settings, createdAt, phase, teams, pool, brackets } = adminView(state)
-  return { id, settings, createdAt, phase, teams, pool, poolStandings: pool.standings, brackets, milestones: milestones(state) }
+  const { id, settings, createdAt, phase, teams, pool, brackets, ranking } = adminView(state)
+  return { id, settings, createdAt, phase, teams, pool, poolStandings: pool.standings, brackets, ranking, milestones: milestones(state) }
 }
 
 /** Ligne de la liste des éditions (console, choix de l'édition en cours). */

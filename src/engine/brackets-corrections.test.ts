@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, correctionImpact, describeEvent, replay, type BracketMatchView, type Command } from './index.ts'
+import { bracketsView, correctionImpact, describeEvent, finalRanking, replay, type BracketMatchView, type Command } from './index.ts'
 import { seededRng, randomInt } from './rng.ts'
 import { createEdition, run, type Harness } from './testing.ts'
 
@@ -30,6 +30,7 @@ const match = (t: Harness, id: string) => allMatches(t).find((m) => m.id === id)
 const round = (t: Harness, key: 'P' | 'C', n: number) => bracketsView(t.state).brackets.find((b) => b.key === key)!.rounds[n - 1].matches
 const score = (t: Harness, id: string, scoreA: number, scoreB: number, confirm?: boolean) =>
   t.apply({ type: 'enterBracketScore', matchId: id, scoreA, scoreB, ...(confirm ? { confirm } : {}) })
+const has = (m: BracketMatchView, teamId: string) => m.teamA?.id === teamId || m.teamB?.id === teamId
 const name = (m: BracketMatchView, side: 'A' | 'B') => (side === 'A' ? m.teamA : m.teamB)!.name
 
 /** Planches des matchs en cours : jamais deux fois la même, et aucun match n'attend tant qu'une planche est libre. */
@@ -57,13 +58,12 @@ describe('correction qui change le vainqueur', () => {
     const q0 = match(t, 'P:1:0')
     const semi = match(t, 'P:2:0')
     const impact = correctionImpact(t.state, 'P:1:0', 4, 13)
-    expect(impact).toEqual({
-      winnerChanged: true,
-      changes: [
-        `« ${name(q0, 'B')} » remplace « ${name(q0, 'A')} » en 1/2 du Principal, planche ${semi.board} ; le score 13-9 déjà saisi sera effacé`,
-        `« ${name(q0, 'A')} » n’est plus qualifiée en finale du Principal, planche 1`,
-      ],
-    })
+    expect(impact.winnerChanged).toBe(true)
+    // Les deux lignes du Principal ; les suivantes concernent le Challenge Principal (voir plus bas).
+    expect(impact.changes.slice(0, 2)).toEqual([
+      `« ${name(q0, 'B')} » remplace « ${name(q0, 'A')} » en 1/2 du Principal, planche ${semi.board} ; le score 13-9 déjà saisi sera effacé`,
+      `« ${name(q0, 'A')} » n’est plus qualifiée en finale du Principal, planche 1`,
+    ])
     // Sans confirmation : refusé, la raison est l'impact.
     const reason = t.refusal({ type: 'enterBracketScore', matchId: 'P:1:0', scoreA: 4, scoreB: 13 })
     expect(reason).toContain(`Le vainqueur change : « ${name(q0, 'B')} » au lieu de « ${name(q0, 'A')} ».`)
@@ -119,6 +119,49 @@ describe('correction qui change le vainqueur', () => {
       }
       expectBoardsCoherent(t)
     }
+  })
+})
+
+describe('cascade vers le Challenge', () => {
+  it('un vainqueur du 1er tour du Principal qui change refait le Challenge Principal et efface ses scores devenus faux', () => {
+    const t = bracketsReady(12, { boards: 8 })
+    const q0 = match(t, 'P:1:0')
+    for (const m of round(t, 'P', 1)) score(t, m.id, 13, 5)
+    const cp = () => bracketsView(t.state).brackets.find((b) => b.key === 'CP')!.rounds[0].matches
+    const cpTeams = () => cp().flatMap((m) => [m.teamA!.id, m.teamB!.id])
+    expect(cpTeams()).toContain(q0.teamB!.id)
+    const played = cp()[0]
+    score(t, played.id, 13, 9)
+    const impact = correctionImpact(t.state, 'P:1:0', 4, 13)
+    expect(impact.changes.some((c) => c.includes('du Challenge Principal'))).toBe(true)
+    score(t, 'P:1:0', 4, 13, true)
+    expect(cpTeams()).toContain(q0.teamA!.id)
+    expect(cpTeams()).not.toContain(q0.teamB!.id)
+    // Plus aucun score mémorisé avec d'autres équipes que celles du match.
+    const derived = new Map(allMatches(t).map((m) => [m.id, m]))
+    for (const [id, s] of Object.entries(t.state.brackets.scores)) {
+      expect([s.teamA, s.teamB]).toEqual([derived.get(id)!.teamA!.id, derived.get(id)!.teamB!.id])
+    }
+    expect(cp().every((m) => m.status === 'playing' || (m.status === 'done' && m.teamA!.id === played.teamA!.id && m.teamB!.id === played.teamB!.id))).toBe(true)
+    expectBoardsCoherent(t)
+  })
+})
+
+describe('forfait en tableau et classement final', () => {
+  it('le forfaité est classé à sa place d’élimination, avec une défaite 13-0', () => {
+    const t = bracketsReady(12, { boards: 8 })
+    const q0 = match(t, 'P:1:0')
+    const quitter = q0.teamA!
+    t.apply({ type: 'declareForfeit', teamId: quitter.id })
+    for (const m of bracketsView(t.state).live.filter((m) => m.bracket === 'P')) score(t, m.id, 13, 5)
+    // Perdant du 1er tour du Principal : il va au Challenge Principal, où il perd aussi 13-0.
+    const cpMatch = bracketsView(t.state).brackets.find((b) => b.key === 'CP')!.rounds[0].matches.find((m) => has(m, quitter.id))!
+    expect(cpMatch).toMatchObject({ status: 'done', forfeit: quitter.id })
+    for (const m of bracketsView(t.state).live.filter((m) => m.bracket === 'CP')) score(t, m.id, 13, 5)
+    const row = finalRanking(t.state).rows.find((r) => r.team.id === quitter.id)!
+    expect(row).toMatchObject({ block: 'CP', eliminatedIn: '1/2', poolRank: quitter.poolRank })
+    // Challenge Principal de 4 (places 5 à 8) : à tour égal, sa défaite 13-0 le met derrière l'autre perdant (13-5).
+    expect(row.place).toBe(8)
   })
 })
 
@@ -181,7 +224,7 @@ describe('journal', () => {
     for (const m of round(t, 'P', 1)) score(t, m.id, 13, 5)
     score(t, 'P:2:0', 13, 9)
     score(t, 'P:1:0', 4, 13, true)
-    expect(lastLine(t)).toBe('Score corrigé (Principal, 1/4, planche 1) ; vainqueur changé, 2 matchs suivants modifiés, 1 score effacé')
+    expect(lastLine(t)).toBe('Score corrigé (Principal, 1/4, planche 1) ; vainqueur changé, 4 matchs suivants modifiés, 1 score effacé')
     const semi = match(t, 'P:2:1')
     t.apply({ type: 'declareForfeit', teamId: semi.teamA!.id })
     expect(lastLine(t)).toBe(`Équipe « ${name(semi, 'A')} » déclarée forfait ; « ${name(semi, 'B')} » gagne 13-0 (Principal, 1/2) et avance`)
