@@ -42,6 +42,11 @@ function MyTeamCard({ mine, onChange }: { mine: MyTeamView; onChange: () => void
         </button>
       </div>
       <h2 className="my-team-name">{mine.team.name}</h2>
+      {mine.prize && (
+        <p className="my-prize">
+          Ton lot : <strong>{mine.prize}</strong>
+        </p>
+      )}
       <NextBox next={mine.next} />
       {standing && standing.played > 0 && (
         <p className="my-place">

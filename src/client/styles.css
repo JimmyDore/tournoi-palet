@@ -1255,3 +1255,30 @@ a {
     display: none;
   }
 }
+
+/* Lots (onglet Réglages) */
+
+.prize-rows {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.prize-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+@media (max-width: 480px) {
+  .prize-row {
+    grid-template-columns: 5.5rem 1fr;
+  }
+  .prize-row .btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

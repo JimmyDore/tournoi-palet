@@ -6,6 +6,7 @@ import { PublicHeader } from '../components/Brand.tsx'
 import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
 import { MyTeam, useChosenTeam } from './MyTeam.tsx'
+import { FinalRankingSection } from './FinalRankingSection.tsx'
 import { CurrentMatches, PoolStandings } from './PoolSections.tsx'
 import './phone.css'
 
@@ -67,7 +68,9 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
           {/* Pendant : « mon équipe » en haut, puis les vues de la télé. Ticket 15 : tableaux et classement final. */}
           <p className="phone-edition">{view.name}</p>
           <MyTeam view={view} teamId={teamId} choose={choose} />
+          {view.phase === 'after' && <FinalRankingSection view={view} teamId={teamId} />}
           <CurrentMatches view={view} teamId={teamId} />
+          {view.phase === 'during' && <FinalRankingSection view={view} teamId={teamId} />}
           <PoolStandings view={view} teamId={teamId} />
           <EditionInfo view={view} />
         </>

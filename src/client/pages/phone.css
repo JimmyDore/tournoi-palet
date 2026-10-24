@@ -337,3 +337,26 @@
 .phone-standings .name .forfeit-tag {
   margin-left: 0.35rem;
 }
+
+/* Classement final et lots */
+
+.phone-ranking tr.is-provisional td {
+  color: var(--gris);
+}
+
+.phone-ranking .prize {
+  font-size: 0.85rem;
+}
+
+.my-prize {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: var(--or-clair);
+  border-left: 4px solid var(--or);
+  font-size: 1.05rem;
+}
+
+.my-prize strong {
+  color: var(--petrole);
+}
