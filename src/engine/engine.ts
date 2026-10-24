@@ -1,4 +1,5 @@
 import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } from './edition.ts'
+import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
 import { initialState, type EditionState } from './state.ts'
 import { refuse, type Ctx, type Decision } from './types.ts'
 
@@ -12,8 +13,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand
-export type Event = EditionEvent
+export type Command = EditionCommand | TeamCommand
+export type Event = EditionEvent | TeamEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -25,6 +26,10 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'createEdition':
     case 'updateEdition':
       return decideEdition(state, command, ctx)
+    case 'registerTeam':
+    case 'updateTeam':
+    case 'withdrawTeam':
+      return decideTeams(state, command, ctx)
     default:
       return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
   }
@@ -35,6 +40,10 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'editionCreated':
     case 'editionUpdated':
       return evolveEdition(state, event)
+    case 'teamRegistered':
+    case 'teamUpdated':
+    case 'teamWithdrawn':
+      return evolveTeams(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)

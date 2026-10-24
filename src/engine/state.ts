@@ -1,4 +1,5 @@
 import type { EditionSettings } from './settings.ts'
+import type { TeamFields } from './teams.ts'
 
 export interface EditionInfo {
   id: string
@@ -6,6 +7,15 @@ export interface EditionInfo {
   /** Jeton secret des liens publics d'une édition de test (`?k=`). */
   previewToken: string
   createdAt: number
+}
+
+/** Une équipe, dans l'ordre d'inscription. Le nom n'est qu'un affichage : on la désigne par `id`. */
+export interface Team extends TeamFields {
+  /** Identifiant interne stable (`t1`, `t2`…), jamais réutilisé dans l'édition. */
+  id: string
+  registeredAt: number
+  /** Pointage du jour J (présente et payée), posé par le ticket 04. `null` : pas pointée. */
+  checkedInAt: number | null
 }
 
 /**
@@ -17,10 +27,14 @@ export interface EditionInfo {
 export interface EditionState {
   /** `null` tant que l'édition n'est pas créée. */
   edition: EditionInfo | null
+  /** Équipes inscrites ou en liste d'attente, dans l'ordre d'inscription. Les désinscrites en sont retirées. */
+  teams: Team[]
+  /** Numéro du prochain identifiant d'équipe. */
+  nextTeamNumber: number
 }
 
 export function initialState(): EditionState {
-  return { edition: null }
+  return { edition: null, teams: [], nextTeamNumber: 1 }
 }
 
 /** Pour les vues et les commandes qui exigent une édition créée. */

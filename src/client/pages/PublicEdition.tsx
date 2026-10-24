@@ -48,7 +48,8 @@ export function PublicEdition({ id, k }: { id: string; k?: string | null }) {
       {view.isTest && <p className="test-banner">Édition de test : visible seulement avec ce lien</p>}
       {status === 'offline' && <p className="offline-banner">Connexion perdue, reconnexion…</p>}
       <EditionInfo view={view} />
-      {/* Sections suivantes selon view.phase : inscrits (avant), mon équipe /
+      {view.phase === 'before' && <Registrations view={view} />}
+      {/* Sections suivantes selon view.phase : mon équipe /
           poules / tableaux (pendant), classement final et lots (après). */}
     </PublicShell>
   )
@@ -82,6 +83,46 @@ function EditionInfo({ view }: { view: PublicView }) {
           <Info label="Inscriptions" value={tel ? <a href={tel}>{view.contact}</a> : view.contact} />
         )}
       </dl>
+    </section>
+  )
+}
+
+/** Équipes inscrites (noms seulement), places restantes et liste d'attente. */
+function Registrations({ view }: { view: PublicView }) {
+  return (
+    <section className="card" aria-label="Équipes inscrites">
+      <h2 className="card-title">Équipes inscrites</h2>
+      <p className="places">
+        {view.placesLeft > 0 ? (
+          <>
+            <strong>{view.placesLeft}</strong> {view.placesLeft > 1 ? 'places restantes' : 'place restante'} sur {view.maxTeams}
+          </>
+        ) : (
+          <>
+            <strong>Complet</strong> : {view.teams.length} équipes inscrites
+          </>
+        )}
+      </p>
+      {view.teams.length === 0 ? (
+        <p className="muted">Aucune équipe inscrite pour l'instant.</p>
+      ) : (
+        <ol className="public-teams">
+          {view.teams.map((t) => (
+            <li key={t.id}>{t.name}</li>
+          ))}
+        </ol>
+      )}
+      {view.waitlist.length > 0 && (
+        <>
+          <h3 className="card-subtitle">Liste d'attente</h3>
+          <p className="muted small">Une place se libère : la première équipe de la liste la prend.</p>
+          <ol className="public-teams">
+            {view.waitlist.map((t) => (
+              <li key={t.id}>{t.name}</li>
+            ))}
+          </ol>
+        </>
+      )}
     </section>
   )
 }

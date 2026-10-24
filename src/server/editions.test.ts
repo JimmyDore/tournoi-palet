@@ -140,4 +140,28 @@ describe('public', () => {
     const preview = await api('GET', `/api/public/editions/${test.body.id}?k=${token}`)
     expect(preview.body).toMatchObject({ name: 'Répétition', isTest: true })
   })
+
+  it('liste les équipes inscrites et les places restantes, sans aucune donnée privée', async () => {
+    const cookie = await login()
+    const { body } = await api('POST', '/api/admin/editions', cookie, { settings: { name: 'Inscrits', date: '2032-12-18', maxTeams: 2 } })
+    const register = (team: object) => api('POST', `/api/admin/editions/${body.id}/commands`, cookie, { command: { type: 'registerTeam', team } })
+    await register({ name: 'Les Galets', player1: 'Paul', player2: 'Marie', phone: '0611223344', comment: 'paiera en liquide', player1Licensed: true, player2Licensed: true })
+    await register({ player1: 'Jean', player2: 'Luc' })
+    const third = await register({ player1: 'Anne', player2: 'Zoé', phone: '0699887766' })
+    expect(third.body.view.teams.map((t: { status: string }) => t.status)).toEqual(['registered', 'registered', 'waitlist'])
+
+    const pub = subscribe({ type: 'subscribe', editionId: body.id })
+    for (const view of [(await api('GET', `/api/public/editions/${body.id}`)).body, (await api('GET', '/api/public/current')).body, await pub.nextView(1)]) {
+      expect(view).toMatchObject({
+        teams: [{ name: 'Les Galets' }, { name: 'Jean & Luc' }],
+        waitlist: [{ name: 'Anne & Zoé' }],
+        placesLeft: 0,
+      })
+      const json = JSON.stringify(view)
+      for (const secret of ['0611223344', '0699887766', 'paiera', 'Licensed', 'phone', 'comment', 'checkedIn', 'Paul', 'Marie']) {
+        expect(json).not.toContain(secret)
+      }
+    }
+    pub.ws.close()
+  })
 })

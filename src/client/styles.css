@@ -159,6 +159,54 @@ a {
   color: var(--rouge);
 }
 
+/* Inscrits (avant le jour J) */
+
+.card-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+  color: var(--petrole);
+}
+
+.card-subtitle {
+  margin: 1.25rem 0 0.25rem;
+  font-size: 1.1rem;
+  color: var(--petrole);
+}
+
+.places {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.places strong {
+  color: var(--petrole);
+  font-size: 1.4rem;
+}
+
+.small {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem;
+}
+
+.public-teams {
+  margin: 0;
+  padding-left: 2.2rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.public-teams li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--petrole-clair);
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.public-teams li::marker {
+  color: var(--gris);
+  font-weight: 600;
+}
+
 /* ---------- Console (PC portable) ---------- */
 
 .console {
@@ -487,4 +535,107 @@ a {
 
 .dialog-body {
   margin-bottom: 1rem;
+}
+
+/* Équipes (console) */
+
+.counts {
+  margin: 0 0 0.5rem;
+}
+
+.hint {
+  margin: 0 0 0.75rem;
+  color: #7a5a00;
+}
+
+.warning {
+  display: block;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--or);
+  background: var(--or-clair);
+  color: #5c4300;
+  font-weight: 600;
+}
+
+.team-main .warning {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.player-field {
+  gap: 0.35rem;
+}
+
+.check-inline {
+  margin: 0;
+  font-weight: 400;
+}
+
+.team-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.25rem;
+  border-bottom: 1px solid var(--petrole-clair);
+}
+
+.team-rank {
+  min-width: 1.8rem;
+  font-weight: 700;
+  color: var(--gris);
+  text-align: right;
+}
+
+.team-main {
+  flex: 1;
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.team-name {
+  font-weight: 700;
+  color: var(--petrole);
+}
+
+.team-players,
+.team-extra {
+  font-size: 0.9rem;
+}
+
+.team-edit {
+  flex: 1;
+}
+
+.team-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.btn-small {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.85rem;
+}
+
+.btn-danger-outline {
+  color: var(--rouge);
+  border-color: var(--rouge);
+}
+
+.badge-licence {
+  margin-left: 0.3rem;
+  background: var(--petrole-clair);
+  color: var(--petrole);
 }
