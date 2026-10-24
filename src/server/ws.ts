@@ -7,8 +7,9 @@ import { send } from './hub.ts'
  *   serveur → `{type:'hello'}` à la connexion (la sonde /health en dépend) ;
  *   client  → `{type:'subscribe', editionId, k?}` (public) ou
  *             `{type:'subscribe-admin', editionId}` (session vérifiée à l'upgrade) ;
- *   serveur → `{type:'view', editionId, view}` à l'abonnement puis après chaque
- *             commande appliquée, ou `{type:'error', reason}`.
+ *   serveur → `{type:'view', editionId, serverNow, view}` à l'abonnement puis après chaque
+ *             commande appliquée, ou `{type:'error', reason}` ; `serverNow`
+ *             (ms) sert à caler le chrono des écrans sur l'heure du serveur.
  */
 export function registerWebSocket(app: FastifyInstance, { store, hub, auth }: ServerContext): void {
   app.get('/ws', { websocket: true }, (socket, req) => {

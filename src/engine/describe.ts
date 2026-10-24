@@ -3,6 +3,7 @@ import type { Event } from './engine.ts'
 import { poolView } from './pool.ts'
 import { SETTING_KEYS, SETTING_LABELS, formatSetting, type EditionSettings } from './settings.ts'
 import type { EditionState } from './state.ts'
+import { clockLabel } from './clock.ts'
 import { tvViewLabel } from './tv.ts'
 import { TEAM_FIELD_KEYS, TEAM_FIELD_LABELS, teamName, teamStatuses, type TeamFields } from './teams.ts'
 
@@ -125,6 +126,9 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
     }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
+    case 'clockStarted':
+    case 'clockStopped':
+      return { label: clockLabel(event, before) }
   }
 }
 

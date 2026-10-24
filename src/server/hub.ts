@@ -40,8 +40,9 @@ export class Hub {
   }
 }
 
+/** `serverNow` : l'heure du serveur à l'envoi, pour que chaque écran cale son chrono dessus. */
 function viewMessage(editionId: string, admin: boolean, state: EditionState): string {
-  return JSON.stringify({ type: 'view', editionId, view: admin ? adminView(state) : publicView(state) })
+  return JSON.stringify({ type: 'view', editionId, serverNow: Date.now(), view: admin ? adminView(state) : publicView(state) })
 }
 
 export function send(socket: WebSocket, message: string | object): void {

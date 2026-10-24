@@ -10,6 +10,19 @@ export interface Live<T> {
 
 const RETRY_MS = [500, 1000, 2000, 5000]
 
+/** Écart entre l'horloge du serveur et celle de cet appareil (ms). */
+let serverOffset = 0
+
+/** Recale l'écart sur l'heure du serveur reçue avec chaque vue (à la latence près). */
+function noteServerNow(serverNow: number): void {
+  serverOffset = serverNow - Date.now()
+}
+
+/** Heure du serveur, vue depuis cet appareil : télé et téléphones affichent le même chrono. */
+export function serverNow(): number {
+  return Date.now() + serverOffset
+}
+
 /**
  * Ouvre le WebSocket, s'abonne, et renvoie la dernière vue reçue. Se
  * reconnecte tout seul (et se réabonne) si la connexion tombe.
@@ -34,6 +47,7 @@ function useLive<T>(subscription: Record<string, unknown> | null): Live<T> {
         if (msg.type === 'hello') ws?.send(key)
         else if (msg.type === 'view') {
           attempt = 0
+          if (typeof msg.serverNow === 'number') noteServerNow(msg.serverNow)
           setLive({ view: msg.view as T, status: 'live' })
         } else if (msg.type === 'error') {
           stopped = true

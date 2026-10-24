@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { PublicView } from '../../engine/index.ts'
 import { getJson, HttpError } from '../api.ts'
+import { ClockDisplay } from '../components/Clock.tsx'
 import { PublicHeader } from '../components/Brand.tsx'
 import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
@@ -55,6 +56,7 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
     <PublicShell compact={view.phase !== 'before'}>
       {view.isTest && <p className="test-banner">Édition de test : visible seulement avec ce lien</p>}
       {offline && <p className="offline-banner">Connexion perdue, reconnexion…</p>}
+      {view.clock && view.phase !== 'after' && <ClockDisplay clock={view.clock} className="clock-phone" />}
       {view.phase === 'before' ? (
         <>
           <EditionInfo view={view} />

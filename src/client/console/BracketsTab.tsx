@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { POOL_ROUNDS, bracketSize, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { ClockControls } from './ClockControls.tsx'
 import { MatchList } from './PoolsTab.tsx'
 import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
@@ -111,6 +112,7 @@ export function BracketsTab({ view }: TabProps) {
 
   return (
     <div className="stack">
+      {generated && <ClockControls view={view} />}
       {!generated && (
         <section className="panel">
           <h2>Répartition Principal / Consolante</h2>

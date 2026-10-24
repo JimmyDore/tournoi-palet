@@ -1,3 +1,4 @@
+import type { ClockState } from './clock.ts'
 import type { EditionSettings } from './settings.ts'
 import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
@@ -46,6 +47,8 @@ export interface PublicView {
   brackets: BracketsView
   /** Vue imposée à la télé (`auto` : rotation). */
   tv: TvState
+  /** Chrono (heures du serveur) : chaque écran calcule le temps restant avec `clockReading`. */
+  clock: ClockState | null
 }
 
 export interface PublicTeam {
@@ -86,6 +89,7 @@ export function publicView(state: EditionState): PublicView {
     pool: poolView(state),
     brackets: bracketsView(state),
     tv: state.tv,
+    clock: state.clock,
   }
 }
 
@@ -122,6 +126,7 @@ export interface AdminView {
   pool: PoolView
   brackets: BracketsView
   tv: TvState
+  clock: ClockState | null
 }
 
 export function adminView(state: EditionState): AdminView {
@@ -152,6 +157,7 @@ export function adminView(state: EditionState): AdminView {
     pool: poolView(state),
     brackets: bracketsView(state),
     tv: state.tv,
+    clock: state.clock,
   }
 }
 

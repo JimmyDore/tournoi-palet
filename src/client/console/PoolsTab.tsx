@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { POOL_ROUNDS, type PoolMatchView, type Score, type PoolRoundView, type PoolStanding, type PoolTeamRef } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { ClockControls } from './ClockControls.tsx'
 import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
 
@@ -132,6 +133,8 @@ export function PoolsTab({ view }: TabProps) {
           </p>
         )}
       </section>
+
+      <ClockControls view={view} />
 
       {round && (
         <section className="panel">

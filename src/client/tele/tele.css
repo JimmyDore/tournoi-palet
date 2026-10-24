@@ -322,6 +322,62 @@
 
 .tv-clock-slot {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Chrono en grand : lisible depuis le fond de la salle. */
+.clock.clock-tv {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5vh;
+  width: 100%;
+  padding: 1vh 0.5vw 1.2vh;
+  border-radius: 1.2vh;
+  background: var(--petrole-fonce);
+}
+
+.clock.clock-tv .clock-label {
+  font-size: 2.4vh;
+  color: var(--petrole-clair);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.clock.clock-tv .clock-time {
+  font-size: min(8.5vh, 5.6vw);
+  line-height: 1;
+  color: var(--blanc);
+}
+
+.clock.clock-tv[data-state='alert'] {
+  box-shadow: inset 0 0 0 0.5vh var(--or);
+}
+
+.clock.clock-tv[data-state='alert'] .clock-time {
+  color: var(--or);
+}
+
+.clock.clock-tv[data-state='overtime'] {
+  background: var(--rouge);
+}
+
+.clock.clock-tv[data-state='overtime'] .clock-time,
+.clock.clock-tv[data-state='overtime'] .clock-label {
+  color: var(--blanc);
+}
+
+/* Arrêté : figé et neutre, même s'il était en alerte ou en dépassement. */
+.clock.clock-tv[data-running='false'] {
+  background: var(--petrole-fonce);
+  box-shadow: none;
+}
+
+.clock.clock-tv[data-running='false'] .clock-time,
+.clock.clock-tv[data-running='false'] .clock-label {
+  color: var(--petrole-clair);
 }
 
 .tv-qr-block {
@@ -332,7 +388,7 @@
 }
 
 .tv-qr {
-  width: min(17vw, 34vh);
+  width: min(15vw, 28vh);
   aspect-ratio: 1;
   background: var(--blanc);
   border-radius: 1vh;

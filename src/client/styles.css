@@ -988,6 +988,136 @@ a {
   flex-basis: 100%;
   margin: 0;
 }
+/* ---------- Chrono (console, téléphone ; la télé dans tele.css) ---------- */
+
+.clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gris);
+}
+
+.clock-time {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--petrole);
+}
+
+.clock[data-state='alert'] .clock-time {
+  color: var(--or);
+}
+
+.clock[data-state='alert'][data-running='true'] .clock-time {
+  animation: clock-pulse 2s ease-in-out infinite;
+}
+
+.clock[data-state='overtime'] .clock-time,
+.clock[data-state='overtime'] .clock-label {
+  color: var(--rouge);
+}
+
+.clock[data-running='false'] .clock-time {
+  opacity: 0.55;
+}
+
+@keyframes clock-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clock .clock-time {
+    animation: none !important;
+  }
+}
+
+.clock-panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+.clock-panel-row .actions {
+  margin: 0;
+}
+
+.clock-idle {
+  margin: 0;
+}
+
+.clock-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.clock-duration input {
+  width: 4rem;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+}
+
+/* Téléphone : petit bandeau collé en haut, toujours visible. */
+.clock-phone {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  align-self: stretch;
+  justify-content: center;
+  padding: 0.35rem 1rem;
+  background: var(--petrole-fonce);
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+}
+
+.clock-phone .clock-label {
+  color: var(--petrole-clair);
+}
+
+.clock-phone .clock-time {
+  font-size: 1.5rem;
+  color: var(--blanc);
+}
+
+.clock-phone[data-state='alert'] .clock-time {
+  color: var(--or);
+}
+
+.clock-phone[data-state='overtime'] {
+  background: var(--rouge);
+}
+
+.clock-phone[data-state='overtime'] .clock-time,
+.clock-phone[data-state='overtime'] .clock-label {
+  color: var(--blanc);
+}
+
+/* Arrêté : figé et neutre, même s'il était en alerte ou en dépassement. */
+.clock-phone[data-running='false'] {
+  background: var(--petrole-fonce);
+}
+
+.clock-phone[data-running='false'] .clock-time,
+.clock-phone[data-running='false'] .clock-label {
+  color: var(--petrole-clair);
+}
+
+.clock-console[data-running='false'] .clock-time,
+.clock-console[data-running='false'] .clock-label {
+  color: var(--gris);
+}
 
 /* Tableaux : arbre, un tour par colonne (défilement horizontal si besoin) */
 .bracket-winner {
