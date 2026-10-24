@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] Repo GitHub public créé, avec le contenu actuel (docs, `.scratch`, assets, CLAUDE.md) commité sur `main`
-- [ ] Stack initialisée sur le modèle de live-buzzer / music-bingo : client, serveur, SQLite, WebSocket, Dockerfile
-- [ ] Commandes de test, de vérification des types et de build documentées dans CLAUDE.md
-- [ ] `https://tournoi-palet.jimmydore.fr` affiche la page hello en HTTPS, et un endpoint de santé confirme que la base et le WebSocket répondent
-- [ ] Un push sur `main` redéploie le site sans action manuelle (vérifié avec un vrai push)
-- [ ] Sauvegarde R2 et enregistrement sur le hub faits selon le skill (ou désactivés explicitement)
-- [ ] CLAUDE.md explique comment déployer et vérifier la prod, pour que les agents des tickets suivants puissent le faire seuls
+- [x] Repo GitHub public créé, avec le contenu actuel (docs, `.scratch`, assets, CLAUDE.md) commité sur `main`
+- [x] Stack initialisée sur le modèle de live-buzzer / music-bingo : client, serveur, SQLite, WebSocket, Dockerfile
+- [x] Commandes de test, de vérification des types et de build documentées dans CLAUDE.md
+- [x] `https://tournoi-palet.jimmydore.fr` affiche la page hello en HTTPS, et un endpoint de santé confirme que la base et le WebSocket répondent
+- [x] Un push sur `main` redéploie le site sans action manuelle (vérifié avec un vrai push)
+- [x] Sauvegarde R2 et enregistrement sur le hub faits selon le skill (ou désactivés explicitement)
+- [x] CLAUDE.md explique comment déployer et vérifier la prod, pour que les agents des tickets suivants puissent le faire seuls
