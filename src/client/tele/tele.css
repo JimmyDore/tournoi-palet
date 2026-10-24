@@ -404,3 +404,10 @@
   width: 22vh;
   height: auto;
 }
+
+.tv-forfeit {
+  font-size: 1.8vh;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #f2a29c;
+}

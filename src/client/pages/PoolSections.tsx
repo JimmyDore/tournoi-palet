@@ -38,9 +38,10 @@ function PhoneMatch({ match, mine }: { match: PoolMatchView; mine: boolean }) {
         <span className={winner === 'b' ? 'winner' : undefined}>{match.teamB.name}</span>
       </span>
       {score ? (
-        <span className="phone-score">
+        <span className="phone-score" title={match.forfeit ? 'Gagné par forfait' : undefined}>
           <span className={winner === 'a' ? 'winner' : undefined}>{score.a}</span>
           <span className={winner === 'b' ? 'winner' : undefined}>{score.b}</span>
+          {match.forfeit && <span className="forfeit-tag">forfait</span>}
         </span>
       ) : match.status === 'waiting-board' ? (
         <span className="phone-state">attente</span>
@@ -70,7 +71,10 @@ export function PoolStandings({ view, teamId }: { view: PublicView; teamId: stri
           {rows.map((s) => (
             <tr key={s.team.id} className={s.team.id === teamId ? 'is-mine' : undefined}>
               <td className="rank">{s.rank}</td>
-              <td className="name">{s.team.name}</td>
+              <td className="name">
+                {s.team.name}
+                {s.forfeit && <span className="forfeit-tag"> forfait</span>}
+              </td>
               <td className="wins">{s.wins}</td>
               <td>{s.pointsFor}</td>
               <td>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>

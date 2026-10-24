@@ -59,6 +59,7 @@ function MyTeamCard({ mine, onChange }: { mine: MyTeamView; onChange: () => void
               </span>
               <span className="my-result-score">
                 {r.won ? 'Gagné' : 'Perdu'} {r.scored}-{r.conceded}
+                {r.forfeit && ' (forfait)'}
               </span>
             </li>
           ))}
@@ -106,6 +107,13 @@ function NextBox({ next }: { next: MyNext }) {
       return (
         <div className="my-next my-next-wait">
           <p className="my-next-hint">Le tirage de la partie 1 n’a pas encore eu lieu.</p>
+        </div>
+      )
+    case 'forfeit':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">Forfait</p>
+          <p className="my-next-hint">Votre équipe a été déclarée forfait : elle n’est plus tirée.</p>
         </div>
       )
     case 'not-in-pool':

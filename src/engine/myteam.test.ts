@@ -44,7 +44,7 @@ describe('mon équipe (téléphone)', () => {
     const bye = poolView(t.state).rounds[0].bye!.team.id
     const view = mine(t, bye)!
     expect(view.next).toEqual({ kind: 'bye', round: 1 })
-    expect(view.results).toEqual([{ round: 1, bye: true, board: null, opponent: null, scored: 13, conceded: 7, won: true }])
+    expect(view.results).toEqual([{ round: 1, bye: true, board: null, opponent: null, scored: 13, conceded: 7, won: true, forfeit: false }])
     expect(view.standing).toMatchObject({ rank: 1, wins: 1 })
   })
 
@@ -56,7 +56,7 @@ describe('mon équipe (téléphone)', () => {
     const view = mine(t, 't3')!
     const opponent = isA ? match.teamB : match.teamA
     expect(view.next).toEqual({ kind: 'played', round: 1 })
-    expect(view.results).toEqual([{ round: 1, bye: false, board: match.board, opponent, scored: 5, conceded: 13, won: false }])
+    expect(view.results).toEqual([{ round: 1, bye: false, board: match.board, opponent, scored: 5, conceded: 13, won: false, forfeit: false }])
     // Devant les deux équipes qui n'ont pas encore de score (points pour).
     expect(view.standing).toMatchObject({ rank: 2, wins: 0, pointsFor: 5, pointsAgainst: 13 })
     expect(view.teamCount).toBe(4)
@@ -66,6 +66,17 @@ describe('mon équipe (téléphone)', () => {
   it('signale une équipe inscrite qui n’a pas été tirée (absente)', () => {
     const t = run([createEdition(), register('A', 'A'), register('B', 'B'), register('C', 'C'), { type: 'checkInTeam', teamId: 't1' }, { type: 'checkInTeam', teamId: 't2' }, draw])
     expect(mine(t, 't3')!.next).toEqual({ kind: 'not-in-pool' })
+  })
+
+  it('dit « forfait » à l’équipe forfait et compte le 13-0 à son adversaire', () => {
+    const t = checkedIn(4).apply(draw)
+    const match = matchOf(t, 't1')
+    const opponent = match.teamA.id === 't1' ? match.teamB : match.teamA
+    t.apply({ type: 'declareForfeit', teamId: 't1' })
+    expect(mine(t, 't1')!.next).toEqual({ kind: 'forfeit' })
+    expect(mine(t, opponent.id)!.results).toEqual([
+      { round: 1, bye: false, board: match.board, opponent: { id: 't1', name: 'J1a & J1b' }, scored: 13, conceded: 0, won: true, forfeit: true },
+    ])
   })
 
   it('ne connaît pas une équipe disparue', () => {

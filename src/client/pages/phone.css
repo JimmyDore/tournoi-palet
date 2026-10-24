@@ -326,3 +326,14 @@
   background: var(--or-clair);
   font-weight: 700;
 }
+
+.forfeit-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--rouge);
+}
+
+.phone-standings .name .forfeit-tag {
+  margin-left: 0.35rem;
+}

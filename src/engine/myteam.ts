@@ -9,6 +9,7 @@ import type { PublicTeam, PublicView } from './views.ts'
 export type MyNext =
   | { kind: 'not-drawn' }
   | { kind: 'not-in-pool' }
+  | { kind: 'forfeit' }
   | { kind: 'board'; round: number; board: number; opponent: PoolTeamRef }
   | { kind: 'waiting-board'; round: number; opponent: PoolTeamRef }
   | { kind: 'bye'; round: number }
@@ -23,6 +24,8 @@ export interface MyResult {
   scored: number
   conceded: number
   won: boolean
+  /** Match gagné ou perdu par forfait (13-0). */
+  forfeit: boolean
 }
 
 export interface MyTeamView {
@@ -46,17 +49,18 @@ export function myTeamView(view: PublicView, teamId: string): MyTeamView | null 
   for (const round of pool.rounds) {
     if (round.bye?.team.id === teamId) {
       const { a, b } = round.bye.score
-      results.push({ round: round.round, bye: true, board: null, opponent: null, scored: a, conceded: b, won: true })
+      results.push({ round: round.round, bye: true, board: null, opponent: null, scored: a, conceded: b, won: true, forfeit: false })
     }
     for (const m of round.matches) {
       if (!m.score || (m.teamA.id !== teamId && m.teamB.id !== teamId)) continue
       const isA = m.teamA.id === teamId
       const [scored, conceded] = isA ? [m.score.a, m.score.b] : [m.score.b, m.score.a]
-      results.push({ round: round.round, bye: false, board: m.board, opponent: isA ? m.teamB : m.teamA, scored, conceded, won: scored > conceded })
+      results.push({ round: round.round, bye: false, board: m.board, opponent: isA ? m.teamB : m.teamA, scored, conceded, won: scored > conceded, forfeit: m.forfeit !== null })
     }
   }
 
-  return { team, next: nextOf(view, teamId, standing !== null), results, standing, teamCount: pool.standings.length }
+  const next: MyNext = standing?.forfeit ? { kind: 'forfeit' } : nextOf(view, teamId, standing !== null)
+  return { team, next, results, standing, teamCount: pool.standings.length }
 }
 
 function nextOf(view: PublicView, teamId: string, drawn: boolean): MyNext {

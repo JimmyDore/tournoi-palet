@@ -89,6 +89,7 @@ function TvMatch({ match }: { match: PoolMatchView }) {
         <span className="tv-score">
           <span className={winner === 'a' ? 'tv-winner' : undefined}>{score.a}</span>
           <span className={winner === 'b' ? 'tv-winner' : undefined}>{score.b}</span>
+          {match.forfeit && <span className="tv-forfeit">forfait</span>}
         </span>
       ) : match.status === 'waiting-board' ? (
         <span className="tv-state">en attente de planche</span>
@@ -114,7 +115,10 @@ function TvStandings({ rows }: { rows: PoolStanding[] }) {
         {rows.map((s) => (
           <tr key={s.team.id}>
             <td className="tv-rank">{s.rank}</td>
-            <td className="tv-name">{s.team.name}</td>
+            <td className="tv-name">
+              {s.team.name}
+              {s.forfeit && <span className="tv-forfeit"> forfait</span>}
+            </td>
             <td className="tv-wins">{s.wins}</td>
             <td>{s.pointsFor}</td>
             <td>{s.pointsAgainst}</td>
