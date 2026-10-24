@@ -38,7 +38,22 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       const team = before.teams.find((t) => t.id === event.teamId)
       return { label: `Équipe « ${team ? teamName(team) : event.teamId} » désinscrite${moves(before, after)}` }
     }
+    case 'teamCheckedIn': {
+      const price = before.edition ? formatSetting('price', before.edition.settings.price) : '?'
+      return { label: `Équipe « ${nameIn(before, event.teamId)} » pointée (présente, ${price} payés)` }
+    }
+    case 'teamCheckInUndone':
+      return { label: `Pointage de « ${nameIn(before, event.teamId)} » annulé` }
+    case 'absentTeamReplaced':
+      return {
+        label: `Équipe « ${nameIn(before, event.teamId)} » absente, remplacée par « ${nameIn(before, event.replacementId)} » (tête de la liste d’attente)`,
+      }
   }
+}
+
+function nameIn(state: EditionState, teamId: string): string {
+  const team = state.teams.find((t) => t.id === teamId)
+  return team ? teamName(team) : teamId
 }
 
 function formatField(key: keyof TeamFields, value: TeamFields[keyof TeamFields] | undefined): string {

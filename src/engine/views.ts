@@ -1,5 +1,5 @@
 import type { EditionSettings } from './settings.ts'
-import { requireEdition, type EditionState } from './state.ts'
+import { requireEdition, type EditionState, type Team } from './state.ts'
 import { teamName, teamStatuses, teamWarnings, type TeamFields, type TeamStatus } from './teams.ts'
 
 /** Avant le jour J, tournoi en cours, tournoi terminé. */
@@ -99,6 +99,8 @@ export interface AdminView {
   /** Inscrites puis liste d'attente, chacune dans l'ordre d'inscription. */
   teams: AdminTeam[]
   registeredCount: number
+  /** Inscrites pointées (présentes et payées). */
+  checkedInCount: number
   waitlistCount: number
   placesLeft: number
 }
@@ -125,9 +127,19 @@ export function adminView(state: EditionState): AdminView {
     phase: phaseOf(state),
     teams,
     registeredCount: registered.length,
+    checkedInCount: participants(state).length,
     waitlistCount: waitlist.length,
     placesLeft,
   }
+}
+
+/**
+ * Équipes qui jouent : inscrites (hors liste d'attente) et pointées, dans
+ * l'ordre d'inscription. C'est la liste qu'utilise le tirage des poules.
+ */
+export function participants(state: EditionState): Team[] {
+  const statuses = teamStatuses(state)
+  return state.teams.filter((t) => statuses.get(t.id) === 'registered' && t.checkedInAt !== null)
 }
 
 /** Ligne de la liste des éditions (console, choix de l'édition en cours). */

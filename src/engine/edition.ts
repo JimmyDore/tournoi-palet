@@ -1,3 +1,4 @@
+import { capProblem } from './checkin.ts'
 import { randomToken } from './rng.ts'
 import {
   DEFAULT_SETTINGS,
@@ -75,7 +76,7 @@ export function decideEdition(state: EditionState, command: EditionCommand, ctx:
       const requested = pickSettings(command.changes ?? {})
       if (typeof requested.name === 'string') requested.name = requested.name.trim()
       const next = { ...edition.settings, ...requested }
-      const problem = settingsProblem(next)
+      const problem = settingsProblem(next) ?? capProblem(state, next.maxTeams)
       if (problem) return refuse(problem)
       const changes: Record<string, unknown> = {}
       for (const key of SETTING_KEYS) {
