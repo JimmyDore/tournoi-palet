@@ -2,6 +2,7 @@ import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } 
 import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } from './checkin.ts'
 import { decidePool, evolvePool, poolLockProblem, type PoolCommand, type PoolEvent } from './pool.ts'
 import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
+import { decideTv, evolveTv, type TvCommand, type TvEvent } from './tv.ts'
 import { initialState, type EditionState } from './state.ts'
 import { refuse, type Ctx, type Decision } from './types.ts'
 
@@ -15,8 +16,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | TvCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | TvEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -41,6 +42,8 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'drawPoolRound':
     case 'enterPoolScore':
       return decidePool(state, command, ctx)
+    case 'setTvView':
+      return decideTv(state, command, ctx)
     default:
       return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
   }
@@ -62,6 +65,8 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'poolRoundDrawn':
     case 'poolScoreEntered':
       return evolvePool(state, event)
+    case 'tvViewSet':
+      return evolveTv(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)
