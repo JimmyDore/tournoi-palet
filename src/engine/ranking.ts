@@ -1,6 +1,7 @@
 import { BRACKET_NAMES, bracketsView, type BracketKey, type BracketMatchView, type BracketView, type BracketsView } from './brackets.ts'
 import { CHALLENGES } from './challenges.ts'
 import { poolStandings } from './pool.ts'
+import { prizeOf } from './prizes.ts'
 import type { EditionState } from './state.ts'
 
 // Classement final de 1 à N, vue pure des tableaux : blocs Principal,
@@ -26,6 +27,8 @@ export interface FinalRankingRow {
   eliminatedIn: string | null
   /** Plus de match à jouer et tous les matchs du tour où elle a été éliminée sont joués. */
   definitive: boolean
+  /** Lot de la place (tranches des réglages), `null` si aucune tranche ne la couvre. */
+  prize: string | null
 }
 
 export interface FinalRanking {
@@ -112,6 +115,7 @@ export function finalRanking(state: EditionState, brackets: BracketsView = brack
     blockName: RANKING_BLOCK_NAMES[block],
     eliminatedIn,
     definitive,
+    prize: prizeOf(state.prizes, i + 1),
   }))
   const finished = CHALLENGES.flat().every((key) => byKey.get(key)?.winner)
   return { finished, rows }
