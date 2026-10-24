@@ -3,6 +3,7 @@ import { ConsoleGate } from './console/ConsoleApp.tsx'
 import { EditionConsole } from './console/EditionConsole.tsx'
 import { EditionList } from './console/EditionList.tsx'
 import { PublicHeader } from './components/Brand.tsx'
+import { PalmaresPage } from './pages/Palmares.tsx'
 import { PublicEdition, PublicHome } from './pages/PublicEdition.tsx'
 import { Link, matchRoute, useLocation } from './router.tsx'
 import { TelePage } from './tele/TelePage.tsx'
@@ -25,7 +26,7 @@ export function App() {
     case 'tele':
       return <TelePage id={route.id} k={k} />
     case 'palmares':
-      return <ComingSoon />
+      return <PalmaresPage />
     case 'console':
       return (
         <ConsoleGate>
@@ -41,22 +42,6 @@ export function App() {
     case 'not-found':
       return <NotFound />
   }
-}
-
-function ComingSoon() {
-  return (
-    <div className="public">
-      <PublicHeader />
-      <main className="public-main">
-        <section className="card">
-          <h1 className="edition-name">Bientôt disponible</h1>
-          <p>
-            Cette page arrive avec les prochaines versions du site. <Link href="/">Retour à l'accueil</Link>
-          </p>
-        </section>
-      </main>
-    </div>
-  )
 }
 
 function NotFound() {

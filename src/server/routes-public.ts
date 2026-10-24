@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { currentEdition, publicView } from '../engine/index.ts'
+import { currentEdition, palmares, publicView } from '../engine/index.ts'
 import { publiclyVisible, type ServerContext } from './context.ts'
 
 const NOT_FOUND = { error: 'not_found' }
@@ -12,10 +12,8 @@ export function registerPublicRoutes(app: FastifyInstance, { store }: ServerCont
     return state ? publicView(state) : reply.code(404).send(NOT_FOUND)
   })
 
-  /** Éditions publiques (palmarès), la plus récente en tête. */
-  app.get('/api/public/editions', async () =>
-    store.list().filter((e) => !e.isTest).map(({ id, name, date, phase }) => ({ id, name, date, phase })),
-  )
+  /** Palmarès : éditions terminées, la plus récente en tête, jamais une édition de test (jeton ou pas). */
+  app.get('/api/public/editions', async () => palmares(store.list()).map(({ id, name, date, winner }) => ({ id, name, date, winner })))
 
   app.get<{ Params: { id: string }; Querystring: { k?: string } }>('/api/public/editions/:id', async (req, reply) => {
     const state = store.get(req.params.id)

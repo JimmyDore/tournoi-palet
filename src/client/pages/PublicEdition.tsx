@@ -5,8 +5,9 @@ import { ClockDisplay } from '../components/Clock.tsx'
 import { PublicHeader } from '../components/Brand.tsx'
 import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
+import { Link } from '../router.tsx'
 import { MyTeam, useChosenTeam } from './MyTeam.tsx'
-import { FinalRankingSection } from './FinalRankingSection.tsx'
+import { FinalRankingCard, MyFinalPlace, PublicBrackets, Winners } from './PublicResults.tsx'
 import { CurrentMatches, PoolStandings } from './PoolSections.tsx'
 import './phone.css'
 
@@ -63,14 +64,25 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
           <EditionInfo view={view} />
           <Registrations view={view} />
         </>
+      ) : view.phase === 'after' ? (
+        <>
+          {/* Terminé : vainqueurs, classement final (avec les lots) et tableaux, en lecture seule. */}
+          <p className="phone-edition">
+            {view.name}
+            <span className="results-date">{formatDate(view.date)} · concours terminé</span>
+          </p>
+          <MyFinalPlace view={view} teamId={teamId} />
+          <Winners view={view} />
+          <FinalRankingCard view={view} teamId={teamId} />
+          <PublicBrackets view={view} teamId={teamId} />
+        </>
       ) : (
         <>
           {/* Pendant : « mon équipe » en haut, puis les vues de la télé. Ticket 15 : tableaux et classement final. */}
           <p className="phone-edition">{view.name}</p>
           <MyTeam view={view} teamId={teamId} choose={choose} />
-          {view.phase === 'after' && <FinalRankingSection view={view} teamId={teamId} />}
           <CurrentMatches view={view} teamId={teamId} />
-          {view.phase === 'during' && <FinalRankingSection view={view} teamId={teamId} />}
+          <FinalRankingCard view={view} teamId={teamId} />
           <PoolStandings view={view} teamId={teamId} />
           <EditionInfo view={view} />
         </>
@@ -79,11 +91,17 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
   )
 }
 
-function PublicShell({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
+export function PublicShell({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
+  const onPalmares = location.pathname === '/palmares'
   return (
     <div className="public">
       <PublicHeader compact={compact} />
       <main className="public-main">{children}</main>
+      {!onPalmares && (
+        <footer className="public-footer">
+          <Link href="/palmares">Palmarès des éditions passées</Link>
+        </footer>
+      )}
     </div>
   )
 }

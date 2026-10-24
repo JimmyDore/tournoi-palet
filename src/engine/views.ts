@@ -213,11 +213,24 @@ export interface EditionSummary {
   isTest: boolean
   createdAt: number
   phase: Phase
+  /** Vainqueur du Principal (1re place), une fois le tournoi terminé ; sinon `null`. */
+  winner: PublicTeam | null
 }
 
 export function editionSummary(state: EditionState): EditionSummary {
   const { id, settings, createdAt } = requireEdition(state)
-  return { id, name: settings.name, date: settings.date, isTest: settings.isTest, createdAt, phase: phaseOf(state) }
+  const ranking = state.brackets.grids ? finalRanking(state) : null
+  const done = ranking?.finished ?? false
+  const first = done ? ranking!.rows[0]?.team : undefined
+  return {
+    id,
+    name: settings.name,
+    date: settings.date,
+    isTest: settings.isTest,
+    createdAt,
+    phase: ranking ? phase(state, ranking) : phaseOf(state),
+    winner: first ? { id: first.id, name: first.name } : null,
+  }
 }
 
 /** L'édition « en cours » du site public : la plus récente par date, hors test. */
@@ -225,4 +238,11 @@ export function currentEdition(summaries: readonly EditionSummary[]): EditionSum
   const real = summaries.filter((e) => !e.isTest)
   real.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
   return real[0] ?? null
+}
+
+/** Palmarès public : les éditions terminées, la plus récente en tête, jamais une édition de test. */
+export function palmares(summaries: readonly EditionSummary[]): EditionSummary[] {
+  return summaries
+    .filter((e) => !e.isTest && e.phase === 'after')
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
 }

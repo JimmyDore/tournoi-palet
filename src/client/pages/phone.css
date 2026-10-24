@@ -338,15 +338,7 @@
   margin-left: 0.35rem;
 }
 
-/* Classement final et lots */
-
-.phone-ranking tr.is-provisional td {
-  color: var(--gris);
-}
-
-.phone-ranking .prize {
-  font-size: 0.85rem;
-}
+/* Lot de l'équipe */
 
 .my-prize {
   margin: 0.75rem 0;
@@ -359,4 +351,114 @@
 
 .my-prize strong {
   color: var(--petrole);
+}
+
+/* ---------- Édition terminée et palmarès ---------- */
+
+.results-date {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.results-champion {
+  margin: 0.15rem 0 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--petrole);
+  overflow-wrap: anywhere;
+}
+
+.results-others {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.results-others li {
+  overflow-wrap: anywhere;
+}
+
+.results-ranking .results-block th {
+  padding: 0.9rem 0.25rem 0.3rem;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--petrole);
+}
+
+.results-stage {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--gris);
+}
+
+.results-lot {
+  font-size: 0.9rem;
+  color: var(--petrole);
+  font-weight: 600;
+}
+
+.results-bracket {
+  border-top: 1px solid var(--petrole-clair);
+  padding: 0.6rem 0;
+}
+
+.results-bracket summary {
+  cursor: pointer;
+  padding: 0.3rem 0;
+  font-size: 1.05rem;
+  color: var(--petrole);
+}
+
+.results-round .card-subtitle {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.results-match {
+  grid-template-columns: 1fr auto;
+  padding: 0.4rem 0.6rem;
+}
+
+.public-footer {
+  padding: 0 1rem 2rem;
+  text-align: center;
+}
+
+.public-footer a,
+.public-main > p.center a {
+  color: var(--or);
+  font-weight: 600;
+}
+
+.palmares-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.palmares-entry {
+  display: grid;
+  gap: 0.2rem;
+  text-decoration: none;
+}
+
+.palmares-name {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--petrole);
+}
+
+.palmares-date {
+  color: var(--gris);
+}
+
+.palmares-winner {
+  overflow-wrap: anywhere;
 }
