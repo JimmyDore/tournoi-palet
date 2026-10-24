@@ -4,9 +4,9 @@ import { Link } from '../router.tsx'
 export const CLUB_TITLE = 'Concours de Palets du CJVHB'
 
 /** Bandeau public aux couleurs du club. */
-export function PublicHeader({ subtitle }: { subtitle?: string }) {
+export function PublicHeader({ subtitle, compact = false }: { subtitle?: string; compact?: boolean }) {
   return (
-    <header className="public-header">
+    <header className={compact ? 'public-header compact' : 'public-header'}>
       <Link href="/" className="public-brand">
         <img src={logo} alt="Logo du CJVHB" className="public-logo" />
         <span className="public-club">{CLUB_TITLE}</span>

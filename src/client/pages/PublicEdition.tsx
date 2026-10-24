@@ -4,6 +4,9 @@ import { getJson, HttpError } from '../api.ts'
 import { PublicHeader } from '../components/Brand.tsx'
 import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
+import { MyTeam, useChosenTeam } from './MyTeam.tsx'
+import { CurrentMatches, PoolStandings } from './PoolSections.tsx'
+import './phone.css'
 
 /** `/` : l'édition « en cours » (la plus récente hors test). */
 export function PublicHome() {
@@ -42,23 +45,39 @@ export function PublicEdition({ id, k }: { id: string; k?: string | null }) {
     )
   }
   if (!view) return <PublicShell><p className="muted center">Chargement…</p></PublicShell>
+  return <EditionPage view={view} offline={status === 'offline'} />
+}
 
+function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) {
+  const [teamId, choose] = useChosenTeam(view.id)
+  // Pendant le tournoi, bandeau réduit : « mon équipe » doit être visible sans défiler.
   return (
-    <PublicShell>
+    <PublicShell compact={view.phase !== 'before'}>
       {view.isTest && <p className="test-banner">Édition de test : visible seulement avec ce lien</p>}
-      {status === 'offline' && <p className="offline-banner">Connexion perdue, reconnexion…</p>}
-      <EditionInfo view={view} />
-      {view.phase === 'before' && <Registrations view={view} />}
-      {/* Sections suivantes selon view.phase : mon équipe /
-          poules / tableaux (pendant), classement final et lots (après). */}
+      {offline && <p className="offline-banner">Connexion perdue, reconnexion…</p>}
+      {view.phase === 'before' ? (
+        <>
+          <EditionInfo view={view} />
+          <Registrations view={view} />
+        </>
+      ) : (
+        <>
+          {/* Pendant : « mon équipe » en haut, puis les vues de la télé. Ticket 15 : tableaux et classement final. */}
+          <p className="phone-edition">{view.name}</p>
+          <MyTeam view={view} teamId={teamId} choose={choose} />
+          <CurrentMatches view={view} teamId={teamId} />
+          <PoolStandings view={view} teamId={teamId} />
+          <EditionInfo view={view} />
+        </>
+      )}
     </PublicShell>
   )
 }
 
-function PublicShell({ children }: { children: React.ReactNode }) {
+function PublicShell({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
   return (
     <div className="public">
-      <PublicHeader />
+      <PublicHeader compact={compact} />
       <main className="public-main">{children}</main>
     </div>
   )

@@ -3,6 +3,7 @@ import type { Event } from './engine.ts'
 import { poolView } from './pool.ts'
 import { SETTING_KEYS, SETTING_LABELS, formatSetting, type EditionSettings } from './settings.ts'
 import type { EditionState } from './state.ts'
+import { tvViewLabel } from './tv.ts'
 import { TEAM_FIELD_KEYS, TEAM_FIELD_LABELS, teamName, teamStatuses, type TeamFields } from './teams.ts'
 
 /** Une ligne du journal : ce qui a été fait, et les valeurs avant / après. */
@@ -122,6 +123,8 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}` }
       return { label: `Score corrigé (${where})`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
     }
+    case 'tvViewSet':
+      return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
   }
 }
 

@@ -4,6 +4,7 @@ import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
 import { poolView, type PoolStanding, type PoolView } from './pool.ts'
 import { requireEdition, type EditionState } from './state.ts'
+import type { TvState } from './tv.ts'
 import { teamName, teamStatuses, teamWarnings, type TeamFields, type TeamStatus } from './teams.ts'
 
 export { participants }
@@ -43,6 +44,8 @@ export interface PublicView {
   pool: PoolView
   /** Répartition, tableaux, et matchs de tableau en cours (`brackets.live`) pour la télé. */
   brackets: BracketsView
+  /** Vue imposée à la télé (`auto` : rotation). */
+  tv: TvState
 }
 
 export interface PublicTeam {
@@ -82,6 +85,7 @@ export function publicView(state: EditionState): PublicView {
     placesLeft,
     pool: poolView(state),
     brackets: bracketsView(state),
+    tv: state.tv,
   }
 }
 
@@ -117,6 +121,7 @@ export interface AdminView {
   placesLeft: number
   pool: PoolView
   brackets: BracketsView
+  tv: TvState
 }
 
 export function adminView(state: EditionState): AdminView {
@@ -146,6 +151,7 @@ export function adminView(state: EditionState): AdminView {
     placesLeft,
     pool: poolView(state),
     brackets: bracketsView(state),
+    tv: state.tv,
   }
 }
 

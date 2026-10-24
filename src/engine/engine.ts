@@ -3,7 +3,9 @@ import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } 
 import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } from './checkin.ts'
 import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } from './forfeit.ts'
 import { decidePool, evolvePool, poolLockProblem, type PoolCommand, type PoolEvent } from './pool.ts'
+import { decideRehearsal, type RehearsalCommand } from './rehearsal.ts'
 import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
+import { decideTv, evolveTv, type TvCommand, type TvEvent } from './tv.ts'
 import { initialState, type EditionState } from './state.ts'
 import { refuse, type Ctx, type Decision } from './types.ts'
 
@@ -17,8 +19,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | BracketCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | BracketEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | BracketCommand | TvCommand | RehearsalCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | BracketEvent | TvEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -51,6 +53,12 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'generateBrackets':
     case 'enterBracketScore':
       return decideBrackets(state, command, ctx)
+    case 'setTvView':
+      return decideTv(state, command, ctx)
+    case 'generateFakeTeams':
+    case 'fillRandomScores':
+      // Produit des événements ordinaires : rien à ajouter dans `evolve`.
+      return decideRehearsal(state, command, ctx, { decide, evolve })
     default:
       return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
   }
@@ -80,6 +88,8 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'bracketsGenerated':
     case 'bracketScoreEntered':
       return evolveBrackets(state, event)
+    case 'tvViewSet':
+      return evolveTv(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)
