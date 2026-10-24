@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { AdminView } from '../../engine/index.ts'
+import { CheckInTab } from './CheckInTab.tsx'
 import { JournalTab } from './JournalTab.tsx'
 import { LinksTab } from './LinksTab.tsx'
 import { SettingsTab } from './SettingsTab.tsx'
@@ -17,6 +18,7 @@ export interface TabProps {
 export const EDITION_TABS: { key: string; label: string; Component: ComponentType<TabProps> }[] = [
   { key: 'reglages', label: 'Réglages', Component: SettingsTab },
   { key: 'equipes', label: 'Équipes', Component: TeamsTab },
+  { key: 'pointage', label: 'Pointage', Component: CheckInTab },
   { key: 'liens', label: 'Liens publics', Component: LinksTab },
   { key: 'journal', label: 'Journal', Component: JournalTab },
 ]

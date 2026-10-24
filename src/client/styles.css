@@ -639,3 +639,76 @@ a {
   background: var(--petrole-clair);
   color: var(--petrole);
 }
+
+/* Pointage (console) */
+
+.checkin-count {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.checkin-count strong {
+  font-size: 1.6rem;
+  color: var(--petrole);
+}
+
+.field .checkin-search {
+  font-size: 1.15rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.checkin-row {
+  align-items: center;
+}
+
+.checkin-row.is-checked {
+  background: #eef7f0;
+}
+
+.checkin-box {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 8.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.checkin-box input {
+  width: 1.5rem;
+  height: 1.5rem;
+  accent-color: var(--vert);
+  cursor: pointer;
+}
+
+.is-checked .checkin-box {
+  color: var(--vert);
+}
+
+.badge-wait {
+  margin-left: 0.4rem;
+  background: var(--or-clair);
+  color: #7a5a00;
+  border: 1px solid var(--or);
+}
+
+@media (max-width: 30rem) {
+  .checkin-row {
+    flex-wrap: wrap;
+  }
+  .checkin-box {
+    min-width: 0;
+    order: 2;
+  }
+  .checkin-row .team-main {
+    order: 1;
+    flex-basis: 100%;
+  }
+  .checkin-row .team-actions {
+    order: 3;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
+}
