@@ -22,6 +22,8 @@ export type MyNext =
   | { kind: 'not-drawn' }
   | { kind: 'not-in-pool' }
   | { kind: 'forfeit' }
+  /** Forfait déclaré pendant les tableaux : ses matchs restants sont perdus 13-0. */
+  | { kind: 'bracket-forfeit' }
   | { kind: 'board'; round: number; board: number; opponent: PoolTeamRef }
   | { kind: 'waiting-board'; round: number; opponent: PoolTeamRef }
   | { kind: 'bye'; round: number }
@@ -60,6 +62,8 @@ export interface MyBracketResult extends BracketStage {
   scored: number
   conceded: number
   won: boolean
+  /** Gagné ou perdu par forfait (13-0). */
+  forfeit: boolean
 }
 
 export interface MyTeamView {
@@ -101,7 +105,9 @@ export function myTeamView(view: PublicView, teamId: string): MyTeamView | null 
   const matches = bracketMatchesOf(view, teamId)
   const next: MyNext = standing?.forfeit
     ? { kind: 'forfeit' }
-    : view.brackets.generated && ranking
+    : view.brackets.forfeits.some((f) => f.id === teamId)
+      ? { kind: 'bracket-forfeit' }
+      : view.brackets.generated && ranking
       ? bracketNext(view, teamId, matches, ranking)
       : nextOf(view, teamId, standing !== null)
   const bracketResults = matches.filter((m) => m.score).map((m) => resultOf(m, teamId))
@@ -122,7 +128,7 @@ function bracketMatchesOf(view: PublicView, teamId: string): BracketMatchView[] 
 function resultOf(m: BracketMatchView, teamId: string): MyBracketResult {
   const isA = sideOf(m, teamId) === 'A'
   const [scored, conceded] = isA ? [m.score!.a, m.score!.b] : [m.score!.b, m.score!.a]
-  return { ...stageOf(m), matchId: m.id, board: m.board, opponent: ref((isA ? m.teamB : m.teamA)!), scored, conceded, won: scored > conceded }
+  return { ...stageOf(m), matchId: m.id, board: m.board, opponent: ref((isA ? m.teamB : m.teamA)!), scored, conceded, won: scored > conceded, forfeit: m.forfeit !== null }
 }
 
 function bracketNext(view: PublicView, teamId: string, matches: BracketMatchView[], row: FinalRankingRow): MyNext {

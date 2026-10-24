@@ -7,7 +7,7 @@ import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
 import { Link } from '../router.tsx'
 import { MyTeam, useChosenTeam } from './MyTeam.tsx'
-import { FinalRankingCard, PublicBrackets, Winners } from './PublicResults.tsx'
+import { FinalRankingCard, LiveBracketMatches, PublicBrackets, Winners } from './PublicResults.tsx'
 import { CurrentMatches, PoolStandings } from './PoolSections.tsx'
 import './phone.css'
 
@@ -72,12 +72,24 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
             <span className="results-date">{formatDate(view.date)} · concours terminé</span>
           </p>
           <Winners view={view} />
+          <MyTeam view={view} teamId={teamId} choose={choose} />
           <FinalRankingCard view={view} teamId={teamId} />
           <PublicBrackets view={view} teamId={teamId} />
         </>
+      ) : view.brackets.generated ? (
+        <>
+          {/* Tableaux : « mon équipe », matchs en cours, tableaux, classement provisoire ; les poules en dessous. */}
+          <p className="phone-edition">{view.name}</p>
+          <MyTeam view={view} teamId={teamId} choose={choose} />
+          <LiveBracketMatches view={view} teamId={teamId} />
+          <PublicBrackets view={view} teamId={teamId} />
+          <FinalRankingCard view={view} teamId={teamId} />
+          <PoolStandings view={view} teamId={teamId} />
+          <EditionInfo view={view} />
+        </>
       ) : (
         <>
-          {/* Pendant : « mon équipe » en haut, puis les vues de la télé. Ticket 15 : tableaux et classement final. */}
+          {/* Poules : « mon équipe » en haut, puis les vues de la télé. */}
           <p className="phone-edition">{view.name}</p>
           <MyTeam view={view} teamId={teamId} choose={choose} />
           <CurrentMatches view={view} teamId={teamId} />

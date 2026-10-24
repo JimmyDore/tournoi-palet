@@ -71,7 +71,16 @@ function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null;
         <Logo className="tv-logo" />
         <p className="tv-club">{CLUB_TITLE}</p>
         <p className="tv-edition">{view.name}</p>
-        {round && (
+        {view.brackets.generated ? (
+          <p className="tv-round">
+            {view.phase === 'after' ? 'Tournoi terminé' : 'Tableaux'}
+            {view.phase !== 'after' && (
+              <span>
+                {view.brackets.live.length} match{view.brackets.live.length > 1 ? 's' : ''} en cours
+              </span>
+            )}
+          </p>
+        ) : round && (
           <p className="tv-round">
             Partie {round.round}
             <span>

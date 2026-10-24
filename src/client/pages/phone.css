@@ -447,3 +447,31 @@
 .palmares-winner {
   overflow-wrap: anywhere;
 }
+
+/* Tableaux en cours (téléphone) */
+
+.phone-stage {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris);
+}
+
+.my-place-pools {
+  font-size: 0.95rem;
+  color: var(--gris);
+}
+
+.my-place-pools strong {
+  font-size: 1.1rem;
+}
+
+.my-result-bracket {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris);
+}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { myTeamView, type MyNext, type MyTeamView, type PublicView } from '../../engine/index.ts'
+import { ordinal, rankingStage } from '../format.ts'
 
 const storageKey = (editionId: string) => `tournoi-palet:equipe:${editionId}`
 
@@ -32,7 +33,8 @@ export function MyTeam({ view, teamId, choose }: { view: PublicView; teamId: str
 }
 
 function MyTeamCard({ mine, onChange }: { mine: MyTeamView; onChange: () => void }) {
-  const { standing } = mine
+  const { standing, ranking } = mine
+  const inBrackets = ranking !== null
   return (
     <section className="card my-team" aria-label="Mon équipe">
       <div className="my-team-head">
@@ -43,11 +45,35 @@ function MyTeamCard({ mine, onChange }: { mine: MyTeamView; onChange: () => void
       </div>
       <h2 className="my-team-name">{mine.team.name}</h2>
       <NextBox next={mine.next} />
-      {standing && standing.played > 0 && (
+      {/* Ticket 16 : « ton lot » ici, sous la place finale (mine.ranking.definitive). */}
+      {ranking && !ranking.definitive && mine.next.kind !== 'eliminated' && (
         <p className="my-place">
+          Classement provisoire : <strong>{ordinal(ranking.place)}</strong> sur {mine.teamCount} · {ranking.blockName}
+        </p>
+      )}
+      {standing && standing.played > 0 && (
+        <p className={inBrackets ? 'my-place my-place-pools' : 'my-place'}>
+          {inBrackets && 'Poules : '}
           <strong>{ordinal(standing.rank)}</strong> sur {mine.teamCount} · {standing.wins} victoire{standing.wins > 1 ? 's' : ''} ·{' '}
           {standing.diff > 0 ? `+${standing.diff}` : standing.diff} de différence
         </p>
+      )}
+      {mine.bracketResults.length > 0 && (
+        <ul className="my-results">
+          {mine.bracketResults.map((r) => (
+            <li key={r.matchId} className={r.won ? 'won' : 'lost'}>
+              <span className="my-result-round">{r.roundName}</span>
+              <span className="my-result-text">
+                <span className="my-result-bracket">{r.bracketName}</span>
+                contre {r.opponent.name}
+              </span>
+              <span className="my-result-score">
+                {r.won ? 'Gagné' : 'Perdu'} {r.scored}-{r.conceded}
+                {r.forfeit && ' (forfait)'}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
       {mine.results.length > 0 && (
         <ul className="my-results">
@@ -116,6 +142,88 @@ function NextBox({ next }: { next: MyNext }) {
           <p className="my-next-hint">Votre équipe a été déclarée forfait : elle n’est plus tirée.</p>
         </div>
       )
+    case 'pools-done':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">Poules terminées</p>
+          <p className="my-next-hint">Les tableaux arrivent : votre prochain match s’affichera ici.</p>
+        </div>
+      )
+    case 'bracket-board':
+      return (
+        <div className="my-next my-next-board">
+          <p className="my-next-where">
+            {next.bracketName} · {next.roundName}
+            <span>Planche {next.board}</span>
+          </p>
+          <p className="my-next-against">contre {next.opponent.name}</p>
+        </div>
+      )
+    case 'bracket-waiting-board':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">
+            {next.bracketName} · {next.roundName} · en attente de planche
+          </p>
+          <p className="my-next-against">contre {next.opponent.name}</p>
+          <p className="my-next-hint">Une planche vous sera attribuée dès qu’un match se termine.</p>
+        </div>
+      )
+    case 'bracket-pending':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">
+            {next.bracketName} · {next.roundName}
+          </p>
+          {next.opponent ? (
+            <>
+              <p className="my-next-against">contre {next.opponent.name}</p>
+              <p className="my-next-hint">Le match sera lancé dès la fin du tour en cours.</p>
+            </>
+          ) : (
+            <p className="my-next-hint">Qualifiés ! En attente de l’adversaire : son match n’est pas fini.</p>
+          )}
+        </div>
+      )
+    case 'challenge-waiting':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">Direction le {next.bracketName}</p>
+          <p className="my-next-hint">Il se forme dès la fin du premier tour : votre planche s’affichera ici.</p>
+        </div>
+      )
+    case 'eliminated':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">
+            Éliminés{next.eliminatedIn && ` en ${next.eliminatedIn}`} · {next.blockName}
+          </p>
+          <p className="my-next-hint">
+            Place provisoire : <strong>{ordinal(next.place)}</strong>. Elle sera définitive quand tous les matchs de ce tour seront joués.
+          </p>
+        </div>
+      )
+    case 'final-place':
+      return (
+        <div className="my-next my-next-board my-next-final">
+          <p className="my-next-where">
+            Place finale
+            <span>
+              {ordinal(next.place)} sur {next.teamCount}
+            </span>
+          </p>
+          <p className="my-next-against">
+            {next.blockName} · {rankingStage({ block: 'P', eliminatedIn: next.eliminatedIn, definitive: true })}
+          </p>
+        </div>
+      )
+    case 'bracket-forfeit':
+      return (
+        <div className="my-next my-next-wait">
+          <p className="my-next-where">Forfait</p>
+          <p className="my-next-hint">Votre équipe a été déclarée forfait : ses matchs restants sont perdus.</p>
+        </div>
+      )
     case 'not-in-pool':
       return (
         <div className="my-next my-next-wait">
@@ -164,8 +272,4 @@ function TeamPicker({ view, onChoose }: { view: PublicView; onChoose: (teamId: s
 
 function normalize(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-}
-
-function ordinal(rank: number): string {
-  return rank === 1 ? '1re' : `${rank}e`
 }

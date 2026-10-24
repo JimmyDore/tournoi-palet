@@ -85,6 +85,16 @@ describe('mon équipe dans les tableaux', () => {
     expect(view.ranking).toMatchObject({ place: 1, definitive: true })
   })
 
+  it('forfait en tableau : « forfait » plutôt qu’une planche, et l’adversaire gagne 13-0', () => {
+    const t = bracketsReady(12)
+    const [m] = round(t, 'P', 1)
+    t.apply({ type: 'declareForfeit', teamId: m.teamB!.id })
+    expect(mine(t, m.teamB!.id).next).toEqual({ kind: 'bracket-forfeit' })
+    expect(mine(t, m.teamA!.id).bracketResults).toEqual([
+      { matchId: m.id, bracket: 'P', bracketName: 'Principal', roundName: '1/4', board: m.board, opponent: named(m.teamB), scored: 13, conceded: 0, won: true, forfeit: true },
+    ])
+  })
+
   it('exemptée au 1er tour : attend directement le tour suivant', () => {
     // 10 équipes : Principal de 7 dans une grille de 8, la 1re des poules est exemptée.
     const t = bracketsReady(10)

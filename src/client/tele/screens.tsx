@@ -191,7 +191,11 @@ function TvTree({ bracket, page }: { bracket: BracketView; page: TreePage }) {
       {page.columns.length === 0 ? (
         <TvEmpty text={bracket.winner ? 'Une seule équipe : elle remporte le tableau.' : 'Pas de match dans ce tableau.'} />
       ) : (
-        <div className={`tv-tree tv-tree-${Math.min(page.columns.length, 5)}`}>
+        // Les tours dont aucune équipe n'est connue sont plus étroits : les noms des tours joués restent entiers.
+        <div
+          className={`tv-tree tv-tree-${Math.min(page.columns.length, 5)}`}
+          style={{ gridTemplateColumns: page.columns.map((c) => (c.matches.some((m) => m.teamA || m.teamB) ? 'minmax(0, 2.2fr)' : 'minmax(0, 1fr)')).join(' ') }}
+        >
           {page.columns.map(({ round, matches }) => (
             <section key={round.round} className="tv-tree-col" aria-label={round.name}>
               <h2 className="tv-tree-round">{round.name}</h2>
@@ -220,10 +224,14 @@ function TvTreeMatch({ match }: { match: BracketMatchView }) {
   return (
     <li className={`tv-tree-match tv-tree-${match.status}`}>
       {(match.status === 'playing' || match.status === 'waiting-board') && (
-        <span className="tv-tree-board">{match.board !== null ? `Planche ${match.board}` : 'attente de planche'}</span>
+        <span className="tv-tree-board" aria-label={match.board !== null ? `Planche ${match.board}` : 'En attente de planche'}>
+          {match.board ?? '–'}
+        </span>
       )}
-      {side(match.teamA, 'a', score?.a)}
-      {side(match.teamB, 'b', score?.b)}
+      <span className="tv-tree-teams">
+        {side(match.teamA, 'a', score?.a)}
+        {side(match.teamB, 'b', score?.b)}
+      </span>
     </li>
   )
 }

@@ -1,15 +1,8 @@
 import type { BracketMatchView, BracketView, FinalRankingRow, PublicView } from '../../engine/index.ts'
+import { rankingStage } from '../format.ts'
 
 /** Ligne du classement, avec le lot quand l'édition en a (ticket 16). */
 type RankingRow = FinalRankingRow & { lot?: string | null }
-
-/** Où l'équipe s'est arrêtée dans son bloc. */
-function stage(row: FinalRankingRow, first: boolean): string {
-  if (row.block === 'forfeit') return 'forfait en poule'
-  if (row.eliminatedIn === 'Finale') return 'finaliste'
-  if (row.eliminatedIn) return `perd en ${row.eliminatedIn}`
-  return first && row.definitive ? 'vainqueur' : 'encore en lice'
-}
 
 /** Vainqueurs des quatre tableaux, en tête de la page d'une édition terminée. */
 export function Winners({ view }: { view: PublicView }) {
@@ -64,7 +57,7 @@ export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: s
                 <td className="rank">{row.place}</td>
                 <td className="name">
                   {row.team.name}
-                  <span className="results-stage">{stage(row, startsBlock)}</span>
+                  <span className="results-stage">{rankingStage(row)}</span>
                 </td>
                 {withLots && <td className="name results-lot">{row.lot ?? ''}</td>}
               </tr>,
@@ -78,20 +71,53 @@ export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: s
 
 /** Les quatre tableaux en lecture seule, un tour sous l'autre, la finale en tête (lisible à 375 px). */
 export function PublicBrackets({ view, teamId }: { view: PublicView; teamId: string | null }) {
-  if (view.brackets.brackets.length === 0) return null
+  const { brackets } = view.brackets
+  if (brackets.length === 0) return null
+  // Ouvert : le dernier tableau où joue « mon équipe », sinon le Principal.
+  const mineKey = teamId ? brackets.filter((b) => b.rounds.some((r) => r.matches.some((m) => m.status !== 'bye' && hasTeam(m, teamId)))).at(-1)?.key : undefined
   return (
     <section className="card" aria-label="Tableaux">
       <h2 className="card-title">Tableaux</h2>
-      {view.brackets.brackets.map((b) => (
-        <BracketDetails key={b.key} bracket={b} teamId={teamId} />
+      {brackets.map((b) => (
+        <BracketDetails key={b.key} bracket={b} teamId={teamId} open={b.key === (mineKey ?? 'P')} />
       ))}
     </section>
   )
 }
 
-function BracketDetails({ bracket, teamId }: { bracket: BracketView; teamId: string | null }) {
+const hasTeam = (m: BracketMatchView, teamId: string | null) => teamId !== null && (m.teamA?.id === teamId || m.teamB?.id === teamId)
+
+/** Matchs de tableau en cours, par planche, puis ceux en attente de planche (téléphone). */
+export function LiveBracketMatches({ view, teamId }: { view: PublicView; teamId: string | null }) {
+  const { live } = view.brackets
+  if (live.length === 0) return null
   return (
-    <details className="results-bracket" open={bracket.key === 'P'}>
+    <section className="card" aria-label="Matchs en cours">
+      <h2 className="card-title">Matchs en cours</h2>
+      <ol className="phone-matches">
+        {live.map((m) => (
+          <li key={m.id} className={`phone-match phone-match-${m.status}${hasTeam(m, teamId) ? ' is-mine' : ''}`}>
+            <span className="phone-board" aria-label={m.board ? `Planche ${m.board}` : 'En attente de planche'}>
+              {m.board ?? '–'}
+            </span>
+            <span className="phone-teams">
+              <span className="phone-stage">
+                {m.bracketName} · {m.roundName}
+              </span>
+              <span>{m.teamA?.name}</span>
+              <span>{m.teamB?.name}</span>
+            </span>
+            {m.status === 'waiting-board' && <span className="phone-state">attente</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function BracketDetails({ bracket, teamId, open }: { bracket: BracketView; teamId: string | null; open: boolean }) {
+  return (
+    <details className="results-bracket" open={open}>
       <summary>
         <strong>{bracket.name}</strong>{' '}
         <span className="muted small">
@@ -107,7 +133,7 @@ function BracketDetails({ bracket, teamId }: { bracket: BracketView; teamId: str
             <h3 className="card-subtitle">{round.name}</h3>
             <ol className="phone-matches">
               {played.map((m) => (
-                <ResultMatch key={m.id} match={m} mine={m.teamA?.id === teamId || m.teamB?.id === teamId} />
+                <ResultMatch key={m.id} match={m} mine={hasTeam(m, teamId)} />
               ))}
             </ol>
           </div>
@@ -133,7 +159,7 @@ function ResultMatch({ match, mine }: { match: BracketMatchView; mine: boolean }
           <span className={winner === 'b' ? 'winner' : undefined}>{score.b}</span>
         </span>
       ) : (
-        <span className="phone-state">à jouer</span>
+        <span className="phone-state">{match.status === 'playing' ? `planche ${match.board}` : match.status === 'waiting-board' ? 'attente' : 'à jouer'}</span>
       )}
     </li>
   )
