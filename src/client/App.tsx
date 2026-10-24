@@ -5,6 +5,7 @@ import { EditionList } from './console/EditionList.tsx'
 import { PublicHeader } from './components/Brand.tsx'
 import { PublicEdition, PublicHome } from './pages/PublicEdition.tsx'
 import { Link, matchRoute, useLocation } from './router.tsx'
+import { TelePage } from './tele/TelePage.tsx'
 
 /** Aiguillage des pages. Ajouter une page : un cas dans `Route` (router.tsx) et ici. */
 export function App() {
@@ -22,6 +23,7 @@ export function App() {
     case 'edition':
       return <PublicEdition id={route.id} k={k} />
     case 'tele':
+      return <TelePage id={route.id} k={k} />
     case 'palmares':
       return <ComingSoon />
     case 'console':
