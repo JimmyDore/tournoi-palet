@@ -81,6 +81,14 @@ ssh hetzner /root/tournoi-palet/deploy/backup.sh
 ssh hetzner tail -n 50 /var/log/tournoi-palet-backup.log
 ```
 
+### Copies pendant le tournoi
+
+En plus, l'app copie la base à chaque fin de partie de poule (et de tour de
+tableau) dans `/root/tournoi-palet-data/backups/<édition>-<jalon>-<AAAAMMJJ-HHMMSS>.db`
+(UTC, 40 copies gardées par édition). Elles restent sur le serveur : pour en
+restaurer une, suivre l'étape 4 ci-dessous avec ce fichier. Le bouton
+« Exporter l'édition » de la console télécharge aussi toute l'édition en JSON.
+
 ## Restaurer une sauvegarde
 
 Sur le serveur (`ssh hetzner`) :
