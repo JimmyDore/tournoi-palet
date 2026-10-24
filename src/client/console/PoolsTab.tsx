@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import type { PoolMatchView, PoolRoundView, PoolStanding } from '../../engine/index.ts'
+import { POOL_ROUNDS, type PoolMatchView, type PoolRoundView, type PoolStanding, type PoolTeamRef } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import type { TabProps } from './tabs.tsx'
@@ -7,31 +7,62 @@ import type { TabProps } from './tabs.tsx'
 /** Texte saisi → nombre ; le moteur refuse ce qui n'est pas un entier de 0 à 13. */
 const parseScore = (text: string): number | null => (text.trim() === '' ? null : Number(text.trim().replace(',', '.')))
 
+type Dialog =
+  | { kind: 'launch' }
+  /** `warning` : le refus du moteur sans confirmation, qui dit ce qui sera effacé. */
+  | { kind: 'remove'; round: number; warning: string }
+  | { kind: 'forfeit'; team: PoolTeamRef }
+
 /**
- * Onglet « Poules » : lancer la partie, saisir les scores match par match
- * (clic, deux scores, Entrée), voir les matchs sans score et le classement.
+ * Onglet « Poules » : lancer les parties, saisir et corriger les scores match
+ * par match (clic, deux scores, Entrée), voir les matchs sans score et le
+ * classement, déclarer un forfait, retirer la dernière partie.
  */
 export function PoolsTab({ view }: TabProps) {
   const pool = view.pool
-  const round = pool.rounds.at(-1) ?? null
-  const [confirming, setConfirming] = useState(false)
+  const current = pool.rounds.at(-1) ?? null
+  const [shownRound, setShownRound] = useState<number | null>(null)
+  const [dialog, setDialog] = useState<Dialog | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [refusal, setRefusal] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
+  // Partie affichée : celle choisie, sinon la dernière lancée.
+  const round = pool.rounds.find((r) => r.round === shownRound) ?? current
   const nextRound = (pool.currentRound ?? 0) + 1
-  const players = view.checkedInCount
-  const missing = view.registeredCount - players
+  const inPlay = current ? pool.standings.filter((s) => !s.forfeit).length : view.checkedInCount
+  const missing = view.registeredCount - view.checkedInCount
 
-  const launch = async () => {
-    setConfirming(false)
-    const result = await sendCommand(view.id, { type: 'drawPoolRound', round: nextRound })
+  /** Envoie une commande ; affiche le refus du moteur, sinon `success`. */
+  const send = async (command: Parameters<typeof sendCommand>[1], success: string) => {
+    setDialog(null)
+    const result = await sendCommand(view.id, command)
     if (!result.ok) {
       setMessage(null)
-      return setRefusal(result.reason)
+      setRefusal(result.reason)
+      return false
     }
     setRefusal(null)
-    setMessage(`Partie ${nextRound} lancée : les planches sont attribuées.`)
+    setMessage(success)
+    return true
+  }
+
+  const launch = async () => {
+    if (await send({ type: 'drawPoolRound', round: nextRound }, `Partie ${nextRound} lancée : les planches sont attribuées.`)) setShownRound(null)
+  }
+
+  /** Demande d'abord au moteur ce que le retrait effacerait, puis confirme. */
+  const askRemove = async (roundNumber: number) => {
+    const result = await sendCommand(view.id, { type: 'removePoolRound', round: roundNumber })
+    if (result.ok) return // ne peut pas arriver sans `confirm`
+    setDialog({ kind: 'remove', round: roundNumber, warning: result.reason })
+  }
+
+  const remove = async (roundNumber: number) => {
+    if (await send({ type: 'removePoolRound', round: roundNumber, confirm: true }, `Partie ${roundNumber} retirée : son tirage et ses scores sont effacés.`)) {
+      setShownRound(null)
+      setEditing(null)
+    }
   }
 
   const edit = (matchId: string) => {
@@ -45,7 +76,9 @@ export function PoolsTab({ view }: TabProps) {
     const result = await sendCommand(view.id, { type: 'enterPoolScore', matchId: match.id, scoreA: a as number, scoreB: b as number })
     if (!result.ok) return result.reason
     setRefusal(null)
-    setMessage(`${match.board ? `Planche ${match.board} : ` : ''}« ${match.teamA.name} » ${a}-${b} « ${match.teamB.name} »${match.score ? ' (corrigé)' : ''}.`)
+    setMessage(
+      `Partie ${match.round}${match.board ? `, planche ${match.board}` : ''} : « ${match.teamA.name} » ${a}-${b} « ${match.teamB.name} »${match.score ? ' (corrigé)' : ''}.`,
+    )
     setEditing(null)
     return null
   }
@@ -54,21 +87,27 @@ export function PoolsTab({ view }: TabProps) {
     <div className="stack">
       <section className="panel">
         <h2>Poules</h2>
-        {round ? (
-          <RoundSummary round={round} />
+        {current ? (
+          <RoundSummary round={current} />
         ) : (
-          <>
-            <p className="checkin-count">
-              <strong>{players}</strong> {players > 1 ? 'équipes pointées' : 'équipe pointée'} pour la partie 1
-              {missing > 0 && <span className="muted"> · {missing} inscrite{missing > 1 ? 's' : ''} pas encore pointée{missing > 1 ? 's' : ''}</span>}
-            </p>
-            <div className="actions">
-              <button type="button" className="btn btn-primary" onClick={() => setConfirming(true)}>
-                Lancer la partie 1
-              </button>
-            </div>
-          </>
+          <p className="checkin-count">
+            <strong>{inPlay}</strong> {inPlay > 1 ? 'équipes pointées' : 'équipe pointée'} pour la partie 1
+            {missing > 0 && <span className="muted"> · {missing} inscrite{missing > 1 ? 's' : ''} pas encore pointée{missing > 1 ? 's' : ''}</span>}
+          </p>
         )}
+        <div className="actions">
+          {(!current || (current.complete && nextRound <= POOL_ROUNDS)) && (
+            <button type="button" className="btn btn-primary" onClick={() => setDialog({ kind: 'launch' })}>
+              Lancer la partie {nextRound}
+            </button>
+          )}
+          {current?.complete && nextRound > POOL_ROUNDS && <p className="success">Les {POOL_ROUNDS} parties de poule sont terminées.</p>}
+          {current && (
+            <button type="button" className="btn btn-danger-outline" onClick={() => void askRemove(current.round)}>
+              Retirer la partie {current.round}
+            </button>
+          )}
+        </div>
         {refusal && (
           <p className="refusal pool-feedback" role="alert">
             {refusal}
@@ -83,7 +122,27 @@ export function PoolsTab({ view }: TabProps) {
 
       {round && (
         <section className="panel">
-          <h2>Partie {round.round} : matchs par planche</h2>
+          {pool.rounds.length > 1 && (
+            <div className="pool-rounds" role="group" aria-label="Partie affichée">
+              {pool.rounds.map((r) => (
+                <button
+                  key={r.round}
+                  type="button"
+                  className={`btn btn-small${r.round === round.round ? ' btn-primary' : ''}`}
+                  aria-pressed={r.round === round.round}
+                  onClick={() => {
+                    setShownRound(r.round === current?.round ? null : r.round)
+                    setEditing(null)
+                  }}
+                >
+                  Partie {r.round}
+                </button>
+              ))}
+            </div>
+          )}
+          <h2>
+            Partie {round.round} : matchs par planche{round !== current && <span className="muted small"> (partie terminée, scores corrigeables)</span>}
+          </h2>
           <p className="muted small">Cliquez sur un match pour saisir ou corriger son score (Tab passe au second score, Entrée valide, Échap annule).</p>
           <MatchList
             matches={round.matches.filter((m) => m.board !== null)}
@@ -113,15 +172,59 @@ export function PoolsTab({ view }: TabProps) {
         </section>
       )}
 
-      {pool.standings.length > 0 && <Standings standings={pool.standings} />}
+      {pool.standings.length > 0 && (
+        <Standings
+          standings={pool.standings}
+          onForfeit={(team) => setDialog({ kind: 'forfeit', team })}
+          onCancelForfeit={(team) => void send({ type: 'cancelForfeit', teamId: team.id }, `Forfait de « ${team.name} » annulé.`)}
+        />
+      )}
 
-      {confirming && (
-        <ConfirmDialog title={`Lancer la partie ${nextRound} ?`} confirmLabel="Lancer le tirage" onConfirm={() => void launch()} onCancel={() => setConfirming(false)}>
-          <p>
-            Tirage au sort de {players} équipe{players > 1 ? 's' : ''} pointée{players > 1 ? 's' : ''}, une planche par match.
-            {players % 2 === 1 && ' Nombre impair : une équipe sera exempte.'}
-          </p>
-          <p>Ensuite, le pointage et les inscriptions sont clos.{missing > 0 && ` ${missing} inscrite${missing > 1 ? 's' : ''} non pointée${missing > 1 ? 's' : ''} ne jouera pas.`}</p>
+      {dialog?.kind === 'launch' && (
+        <ConfirmDialog title={`Lancer la partie ${nextRound} ?`} confirmLabel="Lancer le tirage" onConfirm={() => void launch()} onCancel={() => setDialog(null)}>
+          {current ? (
+            <p>
+              Tirage au sort de {inPlay} équipe{inPlay > 1 ? 's' : ''} encore en jeu, sans revoir un adversaire déjà rencontré, une planche par match.
+              {inPlay % 2 === 1 && ' Nombre impair : une équipe pas encore exempte le sera.'}
+            </p>
+          ) : (
+            <>
+              <p>
+                Tirage au sort de {inPlay} équipe{inPlay > 1 ? 's' : ''} pointée{inPlay > 1 ? 's' : ''}, une planche par match.
+                {inPlay % 2 === 1 && ' Nombre impair : une équipe sera exempte.'}
+              </p>
+              <p>
+                Ensuite, le pointage et les inscriptions sont clos.
+                {missing > 0 && ` ${missing} inscrite${missing > 1 ? 's' : ''} non pointée${missing > 1 ? 's' : ''} ne jouera pas.`}
+              </p>
+            </>
+          )}
+        </ConfirmDialog>
+      )}
+
+      {dialog?.kind === 'remove' && (
+        <ConfirmDialog
+          title={`Retirer la partie ${dialog.round} ?`}
+          confirmLabel={`Retirer la partie ${dialog.round}`}
+          danger
+          onConfirm={() => void remove(dialog.round)}
+          onCancel={() => setDialog(null)}
+        >
+          <p>{dialog.warning.replace(/ Confirmez pour la retirer\.$/, '')}</p>
+          <p>Cette action est irréversible : les scores effacés devront être ressaisis. Le journal en garde la trace.</p>
+        </ConfirmDialog>
+      )}
+
+      {dialog?.kind === 'forfeit' && (
+        <ConfirmDialog
+          title={`Déclarer « ${dialog.team.name} » forfait ?`}
+          confirmLabel="Déclarer forfait"
+          danger
+          onConfirm={() => void send({ type: 'declareForfeit', teamId: dialog.team.id }, `« ${dialog.team.name} » est déclarée forfait.`)}
+          onCancel={() => setDialog(null)}
+        >
+          <p>Ses matchs sans score sont gagnés 13-0 par l’adversaire, et elle ne sera plus tirée. Elle passe en bas du classement.</p>
+          <p>Le forfait peut être annulé tant que la partie suivante n’est pas lancée.</p>
         </ConfirmDialog>
       )}
     </div>
@@ -135,7 +238,7 @@ function RoundSummary({ round }: { round: PoolRoundView }) {
   return (
     <div role="status">
       <p className="checkin-count">
-        Partie {round.round} : <strong>{done} / {total}</strong> scores saisis
+        Partie {round.round} / {POOL_ROUNDS} : <strong>{done} / {total}</strong> scores saisis
       </p>
       {round.complete ? (
         <p className="success">Tous les scores de la partie {round.round} sont saisis.</p>
@@ -173,11 +276,14 @@ function MatchList({
               type="button"
               className={`pool-match${m.score ? ' is-done' : ' is-missing'}`}
               onClick={() => onEdit(m.id)}
-              aria-label={`${m.board ? `Planche ${m.board}` : 'Sans planche'} : ${m.teamA.name} contre ${m.teamB.name}, ${m.score ? `${m.score.a}-${m.score.b}, corriger` : 'saisir le score'}`}
+              aria-label={`${m.board ? `Planche ${m.board}` : 'Sans planche'} : ${m.teamA.name} contre ${m.teamB.name}, ${m.score ? `${m.score.a}-${m.score.b}${m.forfeit ? ' par forfait' : ''}, corriger` : 'saisir le score'}`}
             >
               <span className="pool-board">{m.board ?? '–'}</span>
               <span className={`pool-team${m.score && m.score.a > m.score.b ? ' is-winner' : ''}`}>{m.teamA.name}</span>
-              <span className="pool-score">{m.score ? `${m.score.a} - ${m.score.b}` : <span className="badge badge-wait">sans score</span>}</span>
+              <span className="pool-score">
+                {m.score ? `${m.score.a} - ${m.score.b}` : <span className="badge badge-wait">sans score</span>}
+                {m.forfeit && <span className="badge badge-forfeit">forfait</span>}
+              </span>
               <span className={`pool-team pool-team-b${m.score && m.score.b > m.score.a ? ' is-winner' : ''}`}>{m.teamB.name}</span>
             </button>
           </li>
@@ -279,11 +385,19 @@ function ScoreEditor({
   )
 }
 
-function Standings({ standings }: { standings: PoolStanding[] }) {
+function Standings({
+  standings,
+  onForfeit,
+  onCancelForfeit,
+}: {
+  standings: PoolStanding[]
+  onForfeit: (team: PoolTeamRef) => void
+  onCancelForfeit: (team: PoolTeamRef) => void
+}) {
   return (
     <section className="panel">
       <h2>Classement des poules</h2>
-      <p className="muted small">Victoires, puis points pour, puis différence, puis points contre.</p>
+      <p className="muted small">Victoires, puis points pour, puis différence, puis points contre. Les équipes forfait sont classées en dernier.</p>
       <div className="table-wrap">
         <table className="standings">
           <thead>
@@ -304,13 +418,19 @@ function Standings({ standings }: { standings: PoolStanding[] }) {
               <th scope="col">Pour</th>
               <th scope="col">Contre</th>
               <th scope="col">Diff.</th>
+              <th scope="col">
+                <span className="visually-hidden">Forfait</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {standings.map((s) => (
-              <tr key={s.team.id}>
+              <tr key={s.team.id} className={s.forfeit ? 'is-forfeit' : undefined}>
                 <td>{s.rank}</td>
-                <td className="left">{s.team.name}</td>
+                <td className="left">
+                  {s.team.name}
+                  {s.forfeit && <span className="badge badge-forfeit">forfait</span>}
+                </td>
                 <td>{s.played}</td>
                 <td>
                   <strong>{s.wins}</strong>
@@ -319,6 +439,17 @@ function Standings({ standings }: { standings: PoolStanding[] }) {
                 <td>{s.pointsFor}</td>
                 <td>{s.pointsAgainst}</td>
                 <td>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>
+                <td>
+                  {s.forfeit ? (
+                    <button type="button" className="btn btn-small" onClick={() => onCancelForfeit(s.team)} aria-label={`Annuler le forfait de ${s.team.name}`}>
+                      Annuler
+                    </button>
+                  ) : (
+                    <button type="button" className="btn btn-small btn-danger-outline" onClick={() => onForfeit(s.team)} aria-label={`Déclarer ${s.team.name} forfait`}>
+                      Forfait
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

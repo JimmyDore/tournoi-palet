@@ -720,7 +720,7 @@ a {
 }
 
 .pool-missing {
-  margin: 0;
+  margin: 0 0 1rem;
   color: #7a5a00;
   font-weight: 600;
 }
@@ -832,6 +832,33 @@ a {
 
 .pool-bye {
   margin: 1rem 0 0;
+}
+
+.pool-rounds {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.badge-forfeit {
+  margin-left: 0.4rem;
+  background: var(--rouge-clair);
+  color: var(--rouge);
+  border: 1px solid var(--rouge);
+}
+
+.standings tr.is-forfeit td {
+  color: var(--gris);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .table-wrap {
