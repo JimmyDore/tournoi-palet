@@ -1,13 +1,18 @@
 import { initialBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
 import { participants } from './checkin.ts'
+import { pairWithoutRematch } from './pairing.ts'
 import { shuffle } from './rng.ts'
 import { scoreProblem, type Score } from './score.ts'
+import { MAX_SCORE } from './settings.ts'
 import type { EditionState } from './state.ts'
 import { teamName } from './teams.ts'
 import { accept, refuse, type Ctx, type Decision } from './types.ts'
 
 // Poules : parties tirées au hasard, une planche par match, scores par match.
 // Tout le reste (planches en cours, file d'attente, classement) est recalculé.
+
+/** Nombre de parties de poule. */
+export const POOL_ROUNDS = 4
 
 // --- Faits -----------------------------------------------------------------
 
@@ -61,7 +66,17 @@ export interface EnterPoolScore {
   scoreB: number
 }
 
-export type PoolCommand = DrawPoolRound | EnterPoolScore
+/**
+ * Retire la dernière partie lancée : son tirage et tous ses scores sont
+ * effacés. Sans `confirm: true`, le moteur refuse en disant ce qui sera effacé.
+ */
+export interface RemovePoolRound {
+  type: 'removePoolRound'
+  round: number
+  confirm?: boolean
+}
+
+export type PoolCommand = DrawPoolRound | EnterPoolScore | RemovePoolRound
 
 // --- Événements ------------------------------------------------------------
 
@@ -82,7 +97,13 @@ export interface PoolScoreEntered {
   scoreB: number
 }
 
-export type PoolEvent = PoolRoundDrawn | PoolScoreEntered
+export interface PoolRoundRemoved {
+  type: 'poolRoundRemoved'
+  at: number
+  round: number
+}
+
+export type PoolEvent = PoolRoundDrawn | PoolScoreEntered | PoolRoundRemoved
 
 // --- decide / evolve -------------------------------------------------------
 
@@ -93,16 +114,25 @@ export function decidePool(state: EditionState, command: PoolCommand, ctx: Ctx):
       if (command.round !== next) {
         return refuse(command.round < next ? `La partie ${command.round} est déjà lancée.` : `Lancez d’abord la partie ${next}.`)
       }
-      // Ticket 06 : parties suivantes (sans revoir un adversaire), forfaits.
-      if (next > 1) return refuse('Seule la partie 1 peut être lancée pour l’instant.')
-      const players = participants(state)
-      if (players.length < 2) return refuse(`Il faut au moins 2 équipes pointées pour lancer la partie 1 (${players.length} pointée${players.length > 1 ? 's' : ''}).`)
-      const drawn = shuffle(ctx.rng, players.map((t) => t.id))
-      const bye = drawn.length % 2 === 1 ? drawn.pop()! : null
-      const matches: PoolMatch[] = []
-      for (let i = 0; i < drawn.length; i += 2) matches.push({ id: `r${next}m${i / 2 + 1}`, teamA: drawn[i], teamB: drawn[i + 1] })
+      if (next > POOL_ROUNDS) return refuse(`Les ${POOL_ROUNDS} parties de poule sont déjà lancées.`)
+      const previous = state.pool.rounds.at(-1)
+      if (previous) {
+        const missing = roundView(state, previous).awaitingScore.length
+        if (missing) return refuse(`La partie ${previous.round} n’est pas terminée : ${missing} match${missing > 1 ? 's' : ''} sans score.`)
+      }
+      // Un forfait déclaré pendant une partie retirée reste valable.
+      const players = previous ? poolPlayers(state) : participants(state).map((t) => t.id).filter((id) => !(id in state.forfeits))
+      if (players.length < 2) {
+        if (previous) return refuse(`Il faut au moins 2 équipes encore en jeu pour lancer la partie ${next}.`)
+        return refuse(`Il faut au moins 2 équipes pointées pour lancer la partie 1 (${players.length} pointée${players.length > 1 ? 's' : ''}).`)
+      }
+      const met = new Set(state.pool.rounds.flatMap((r) => r.matches.map((m) => pairKey(m.teamA, m.teamB))))
+      const byes = new Set(state.pool.rounds.map((r) => r.bye))
+      const pairing = pairWithoutRematch(ctx.rng, players, (a, b) => met.has(pairKey(a, b)), (t) => byes.has(t))
+      if (!pairing) return refuse(`Impossible de tirer la partie ${next} sans faire rejouer deux équipes qui se sont déjà affrontées.`)
+      const matches = pairing.pairs.map(([teamA, teamB], i): PoolMatch => ({ id: `r${next}m${i + 1}`, teamA, teamB }))
       const boards = Array.from({ length: state.edition!.settings.boards }, (_, i) => i + 1)
-      return accept({ type: 'poolRoundDrawn', at: ctx.now, round: next, matches, bye, boardOrder: shuffle(ctx.rng, boards) })
+      return accept({ type: 'poolRoundDrawn', at: ctx.now, round: next, matches, bye: pairing.bye, boardOrder: shuffle(ctx.rng, boards) })
     }
     case 'enterPoolScore': {
       const match = findMatch(state, command.matchId)
@@ -113,7 +143,22 @@ export function decidePool(state: EditionState, command: PoolCommand, ctx: Ctx):
       if (current && current.a === command.scoreA && current.b === command.scoreB) return accept()
       return accept({ type: 'poolScoreEntered', at: ctx.now, matchId: match.id, scoreA: command.scoreA, scoreB: command.scoreB })
     }
+    case 'removePoolRound': {
+      const last = state.pool.rounds.at(-1)
+      if (!last) return refuse('Aucune partie n’est lancée.')
+      if (command.round !== last.round) return refuse(`Seule la dernière partie lancée (la partie ${last.round}) peut être retirée.`)
+      if (command.confirm !== true) return refuse(removalWarning(state, last))
+      return accept({ type: 'poolRoundRemoved', at: ctx.now, round: last.round })
+    }
   }
+}
+
+/** Ce que le retrait d'une partie efface, dit avant de confirmer. */
+export function removalWarning(state: EditionState, round: PoolRound): string {
+  const entered = round.matches.filter((m) => m.id in state.pool.scores).length
+  const scores = entered === 0 ? 'aucun score saisi' : `${entered} score${entered > 1 ? 's' : ''} saisi${entered > 1 ? 's' : ''}`
+  const count = round.matches.length
+  return `Retirer la partie ${round.round} efface son tirage (${count} match${count > 1 ? 's' : ''}${round.bye ? ' et l’exempt' : ''}) et ${scores}. Confirmez pour la retirer.`
 }
 
 export function evolvePool(state: EditionState, event: PoolEvent): EditionState {
@@ -123,8 +168,22 @@ export function evolvePool(state: EditionState, event: PoolEvent): EditionState 
       const { round, matches, bye, boardOrder, at } = event
       return { ...state, pool: { ...pool, rounds: [...pool.rounds, { round, matches, bye, boardOrder, drawnAt: at }] } }
     }
+    case 'poolRoundRemoved': {
+      const removed = pool.rounds.find((r) => r.round === event.round)
+      if (!removed) return state
+      const ids = new Set(removed.matches.map((m) => m.id))
+      return {
+        ...state,
+        pool: {
+          rounds: pool.rounds.filter((r) => r !== removed),
+          scores: Object.fromEntries(Object.entries(pool.scores).filter(([id]) => !ids.has(id))),
+          finishOrder: pool.finishOrder.filter((id) => !ids.has(id)),
+        },
+      }
+    }
     case 'poolScoreEntered': {
-      const first = !(event.matchId in pool.scores)
+      // Un match gagné par forfait est déjà terminé : sa planche est déjà libérée.
+      const first = !pool.finishOrder.includes(event.matchId)
       return {
         ...state,
         pool: {
@@ -143,6 +202,57 @@ function findMatch(state: EditionState, matchId: unknown): (PoolMatch & { round:
     if (match) return { ...match, round: r.round }
   }
   return null
+}
+
+const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
+
+/** Équipes encore tirées : celles de la poule, moins les forfaits, dans l'ordre d'inscription. */
+function poolPlayers(state: EditionState): string[] {
+  const ids = poolTeamIds(state)
+  return state.teams.filter((t) => ids.has(t.id) && !(t.id in state.forfeits)).map((t) => t.id)
+}
+
+export function isPoolTeam(state: EditionState, teamId: string): boolean {
+  return poolTeamIds(state).has(teamId)
+}
+
+const plays = (m: PoolMatch, teamId: string) => m.teamA === teamId || m.teamB === teamId
+
+/** Forfait : ses matchs sans score sont terminés (gagnés 13-0 par l'adversaire), leur planche se libère. */
+export function forfeitInPool(state: EditionState, teamId: string): EditionState {
+  const pool = state.pool
+  const done = new Set(pool.finishOrder)
+  const ended = pool.rounds.flatMap((r) => r.matches).filter((m) => plays(m, teamId) && !done.has(m.id)).map((m) => m.id)
+  return ended.length ? { ...state, pool: { ...pool, finishOrder: [...pool.finishOrder, ...ended] } } : state
+}
+
+/** Forfait annulé : ses matchs sans score redeviennent à jouer (sauf si l'adversaire est lui aussi forfait). */
+export function unforfeitInPool(state: EditionState, teamId: string): EditionState {
+  const pool = state.pool
+  const reopened = new Set(
+    pool.rounds
+      .flatMap((r) => r.matches)
+      .filter((m) => plays(m, teamId) && !(m.id in pool.scores) && !forfeitedIn(state, m))
+      .map((m) => m.id),
+  )
+  return { ...state, pool: { ...pool, finishOrder: pool.finishOrder.filter((id) => !reopened.has(id)) } }
+}
+
+/** Équipe forfait d'un match (la première déclarée si les deux le sont), ou `null`. */
+function forfeitedIn(state: EditionState, m: PoolMatch): string | null {
+  const a = state.forfeits[m.teamA]
+  const b = state.forfeits[m.teamB]
+  if (a && b) return a.at <= b.at ? m.teamA : m.teamB
+  return a ? m.teamA : b ? m.teamB : null
+}
+
+/** Score qui compte : celui saisi, sinon 13-0 contre l'équipe forfait, sinon `null`. */
+function effectiveScore(state: EditionState, m: PoolMatch): { score: Score; forfeit: string | null } | null {
+  const entered = state.pool.scores[m.id]
+  if (entered) return { score: { a: entered.a, b: entered.b }, forfeit: null }
+  const loser = forfeitedIn(state, m)
+  if (!loser) return null
+  return { score: loser === m.teamA ? { a: 0, b: MAX_SCORE } : { a: MAX_SCORE, b: 0 }, forfeit: loser }
 }
 
 /** Équipes tirées en poule (matchs et exempts). */
@@ -197,6 +307,8 @@ export interface PoolMatchView {
   teamA: PoolTeamRef
   teamB: PoolTeamRef
   score: Score | null
+  /** Équipe déclarée forfait si le match est gagné 13-0 par forfait, sinon `null`. */
+  forfeit: string | null
   status: PoolMatchStatus
 }
 
@@ -222,6 +334,8 @@ export interface PoolStanding {
   pointsFor: number
   pointsAgainst: number
   diff: number
+  /** Déclarée forfait : classée après toutes les autres. */
+  forfeit: boolean
 }
 
 /** Poules, publiques telles quelles : seulement des noms d'équipe et des scores. */
@@ -248,7 +362,7 @@ function roundBoards(state: EditionState, round: PoolRound): BoardAllocation {
 function roundView(state: EditionState, round: PoolRound): PoolRoundView {
   const boards = roundBoards(state, round)
   const matches = round.matches.map((m): PoolMatchView => {
-    const score = state.pool.scores[m.id]
+    const result = effectiveScore(state, m)
     const board = boards.boardOf[m.id] ?? null
     return {
       id: m.id,
@@ -256,8 +370,9 @@ function roundView(state: EditionState, round: PoolRound): PoolRoundView {
       board,
       teamA: teamRef(state, m.teamA),
       teamB: teamRef(state, m.teamB),
-      score: score ? { a: score.a, b: score.b } : null,
-      status: score ? 'done' : board === null ? 'waiting-board' : 'playing',
+      score: result?.score ?? null,
+      forfeit: result?.forfeit ?? null,
+      status: result ? 'done' : board === null ? 'waiting-board' : 'playing',
     }
   })
   const queue = (id: string) => boards.waiting.indexOf(id)
@@ -278,7 +393,8 @@ function roundView(state: EditionState, round: PoolRound): PoolRoundView {
 /**
  * Classement des poules : victoires ↓, points pour ↓, différence ↓, points
  * contre ↑, puis ordre d'inscription. Un exempt compte comme une victoire au
- * score d'exempt réglé. Seuls les matchs saisis comptent.
+ * score d'exempt réglé. Seuls les matchs saisis comptent, et ceux gagnés
+ * 13-0 par forfait. Les équipes forfait sont classées après toutes les autres.
  */
 export function poolStandings(state: EditionState): PoolStanding[] {
   const ids = poolTeamIds(state)
@@ -296,7 +412,7 @@ export function poolStandings(state: EditionState): PoolStanding[] {
   const bye = state.edition!.settings.byeScore
   for (const r of state.pool.rounds) {
     for (const m of r.matches) {
-      const score = state.pool.scores[m.id]
+      const score = effectiveScore(state, m)?.score
       if (!score) continue
       add(m.teamA, score.a, score.b)
       add(m.teamB, score.b, score.a)
@@ -304,8 +420,8 @@ export function poolStandings(state: EditionState): PoolStanding[] {
     if (r.bye) add(r.bye, bye.winner, bye.loser)
   }
   return [...rows.values()]
-    .map((row) => ({ ...row, diff: row.pointsFor - row.pointsAgainst }))
-    .sort((x, y) => y.wins - x.wins || y.pointsFor - x.pointsFor || y.diff - x.diff || x.pointsAgainst - y.pointsAgainst || x.index - y.index)
+    .map((row) => ({ ...row, diff: row.pointsFor - row.pointsAgainst, forfeit: row.team.id in state.forfeits }))
+    .sort((x, y) => Number(x.forfeit) - Number(y.forfeit) || y.wins - x.wins || y.pointsFor - x.pointsFor || y.diff - x.diff || x.pointsAgainst - y.pointsAgainst || x.index - y.index)
     .map(({ index: _index, ...row }, i) => ({ rank: i + 1, ...row }))
 }
 
@@ -322,7 +438,7 @@ export type NextMatch =
 /** `null` : pas de match à jouer (pas encore de partie, ou score déjà saisi). */
 export function nextMatchOf(state: EditionState, teamId: string): NextMatch | null {
   const last = state.pool.rounds.at(-1)
-  if (!last) return null
+  if (!last || teamId in state.forfeits) return null
   const round = roundView(state, last)
   if (round.bye?.team.id === teamId) return { kind: 'bye', round: last.round, score: round.bye.score }
   const match = round.matches.find((m) => m.teamA.id === teamId || m.teamB.id === teamId)

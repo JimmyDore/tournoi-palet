@@ -254,6 +254,7 @@ describe('classement des poules', () => {
         pointsFor: 0,
         pointsAgainst: 0,
         diff: 0,
+        forfeit: false,
       })),
     )
   })

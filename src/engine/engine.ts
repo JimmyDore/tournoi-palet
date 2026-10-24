@@ -1,5 +1,6 @@
 import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } from './edition.ts'
 import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } from './checkin.ts'
+import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } from './forfeit.ts'
 import { decidePool, evolvePool, poolLockProblem, type PoolCommand, type PoolEvent } from './pool.ts'
 import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
 import { initialState, type EditionState } from './state.ts'
@@ -15,8 +16,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -40,7 +41,11 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
       return decideCheckIn(state, command, ctx)
     case 'drawPoolRound':
     case 'enterPoolScore':
+    case 'removePoolRound':
       return decidePool(state, command, ctx)
+    case 'declareForfeit':
+    case 'cancelForfeit':
+      return decideForfeit(state, command, ctx)
     default:
       return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
   }
@@ -61,7 +66,11 @@ export function evolve(state: EditionState, event: Event): EditionState {
       return evolveCheckIn(state, event)
     case 'poolRoundDrawn':
     case 'poolScoreEntered':
+    case 'poolRoundRemoved':
       return evolvePool(state, event)
+    case 'forfeitDeclared':
+    case 'forfeitCancelled':
+      return evolveForfeit(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)
