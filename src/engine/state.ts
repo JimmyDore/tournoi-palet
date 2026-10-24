@@ -1,4 +1,5 @@
 import type { EditionSettings } from './settings.ts'
+import type { PoolState } from './pool.ts'
 import type { TeamFields } from './teams.ts'
 
 export interface EditionInfo {
@@ -31,10 +32,12 @@ export interface EditionState {
   teams: Team[]
   /** Numéro du prochain identifiant d'équipe. */
   nextTeamNumber: number
+  /** Parties de poule tirées et scores saisis. */
+  pool: PoolState
 }
 
 export function initialState(): EditionState {
-  return { edition: null, teams: [], nextTeamNumber: 1 }
+  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] } }
 }
 
 /** Pour les vues et les commandes qui exigent une édition créée. */

@@ -1,13 +1,17 @@
 import type { EditionSettings } from './settings.ts'
-import { requireEdition, type EditionState, type Team } from './state.ts'
+import { participants } from './checkin.ts'
+import { poolView, type PoolView } from './pool.ts'
+import { requireEdition, type EditionState } from './state.ts'
 import { teamName, teamStatuses, teamWarnings, type TeamFields, type TeamStatus } from './teams.ts'
+
+export { participants }
 
 /** Avant le jour J, tournoi en cours, tournoi terminé. */
 export type Phase = 'before' | 'during' | 'after'
 
-/** À enrichir par les tickets poules / tableaux (1re partie lancée, finale jouée…). */
-export function phaseOf(_state: EditionState): Phase {
-  return 'before'
+/** Pendant dès la partie 1 lancée. À compléter par les tableaux (finale jouée → après). */
+export function phaseOf(state: EditionState): Phase {
+  return state.pool.rounds.length > 0 ? 'during' : 'before'
 }
 
 /**
@@ -33,6 +37,8 @@ export interface PublicView {
   /** Liste d'attente, dans l'ordre : nom seulement. */
   waitlist: PublicTeam[]
   placesLeft: number
+  /** Parties, planches, scores et classement des poules (noms d'équipe seulement). */
+  pool: PoolView
 }
 
 export interface PublicTeam {
@@ -70,6 +76,7 @@ export function publicView(state: EditionState): PublicView {
     teams: registered.map(named),
     waitlist: waitlist.map(named),
     placesLeft,
+    pool: poolView(state),
   }
 }
 
@@ -103,6 +110,7 @@ export interface AdminView {
   checkedInCount: number
   waitlistCount: number
   placesLeft: number
+  pool: PoolView
 }
 
 export function adminView(state: EditionState): AdminView {
@@ -130,16 +138,8 @@ export function adminView(state: EditionState): AdminView {
     checkedInCount: participants(state).length,
     waitlistCount: waitlist.length,
     placesLeft,
+    pool: poolView(state),
   }
-}
-
-/**
- * Équipes qui jouent : inscrites (hors liste d'attente) et pointées, dans
- * l'ordre d'inscription. C'est la liste qu'utilise le tirage des poules.
- */
-export function participants(state: EditionState): Team[] {
-  const statuses = teamStatuses(state)
-  return state.teams.filter((t) => statuses.get(t.id) === 'registered' && t.checkedInAt !== null)
 }
 
 /** Ligne de la liste des éditions (console, choix de l'édition en cours). */

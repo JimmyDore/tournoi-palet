@@ -1,4 +1,4 @@
-import type { EditionState } from './state.ts'
+import type { EditionState, Team } from './state.ts'
 import { teamName, teamStatuses } from './teams.ts'
 import { accept, refuse, type Ctx, type Decision } from './types.ts'
 
@@ -113,4 +113,13 @@ export function capProblem(state: EditionState, maxTeams: number): string | null
   const bumped = state.teams.slice(maxTeams).find((t) => t.checkedInAt !== null)
   if (!bumped) return null
   return `Impossible : « ${teamName(bumped)} » est déjà pointée et repasserait en liste d’attente. Dépointez-la ou désinscrivez une autre équipe d’abord.`
+}
+
+/**
+ * Équipes qui jouent : inscrites (hors liste d'attente) et pointées, dans
+ * l'ordre d'inscription. C'est la liste qu'utilise le tirage des poules.
+ */
+export function participants(state: EditionState): Team[] {
+  const statuses = teamStatuses(state)
+  return state.teams.filter((t) => statuses.get(t.id) === 'registered' && t.checkedInAt !== null)
 }

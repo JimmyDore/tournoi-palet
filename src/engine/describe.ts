@@ -1,4 +1,5 @@
 import type { Event } from './engine.ts'
+import { poolView } from './pool.ts'
 import { SETTING_KEYS, SETTING_LABELS, formatSetting, type EditionSettings } from './settings.ts'
 import type { EditionState } from './state.ts'
 import { TEAM_FIELD_KEYS, TEAM_FIELD_LABELS, teamName, teamStatuses, type TeamFields } from './teams.ts'
@@ -48,6 +49,26 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       return {
         label: `Équipe « ${nameIn(before, event.teamId)} » absente, remplacée par « ${nameIn(before, event.replacementId)} » (tête de la liste d’attente)`,
       }
+    case 'poolRoundDrawn': {
+      const round = poolView(after).rounds.find((r) => r.round === event.round)
+      const count = event.matches.length
+      const parts = [`Partie ${event.round} lancée : ${count} match${count > 1 ? 's' : ''}`]
+      if (event.bye) parts.push(`« ${nameIn(after, event.bye)} » exempte`)
+      const waiting = round?.awaitingBoard.length ?? 0
+      if (waiting) parts.push(`${waiting} en attente de planche`)
+      return { label: parts.join(' ; ') }
+    }
+    case 'poolScoreEntered': {
+      const match = poolView(after)
+        .rounds.flatMap((r) => r.matches)
+        .find((m) => m.id === event.matchId)
+      if (!match) return { label: `Score saisi (${event.matchId}) : ${event.scoreA}-${event.scoreB}` }
+      const where = `partie ${match.round}${match.board ? `, planche ${match.board}` : ''}`
+      const line = (a: number, b: number) => `« ${match.teamA.name} » ${a}-${b} « ${match.teamB.name} »`
+      const previous = before.pool.scores[event.matchId]
+      if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}` }
+      return { label: `Score corrigé (${where})`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
+    }
   }
 }
 
