@@ -1,3 +1,4 @@
+import { initialBrackets, type BracketsState } from './brackets.ts'
 import type { EditionSettings } from './settings.ts'
 import type { ClockState } from './clock.ts'
 import type { Forfeit } from './forfeit.ts'
@@ -39,6 +40,8 @@ export interface EditionState {
   pool: PoolState
   /** Équipes déclarées forfait (poule ou tableau), par id. */
   forfeits: Record<string, Forfeit>
+  /** Répartition validée, grilles du 1er tour et scores des tableaux. */
+  brackets: BracketsState
   /** Vue imposée à la télé par la console. */
   tv: TvState
   /** Chrono de la partie ou du tour, `null` tant qu'il n'a jamais été lancé. */
@@ -46,7 +49,7 @@ export interface EditionState {
 }
 
 export function initialState(): EditionState {
-  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {}, tv: initialTv(), clock: null }
+  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {}, brackets: initialBrackets(), tv: initialTv(), clock: null }
 }
 
 /** Pour les vues et les commandes qui exigent une édition créée. */

@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { AdminView } from '../../engine/index.ts'
+import { BracketsTab } from './BracketsTab.tsx'
 import { CheckInTab } from './CheckInTab.tsx'
 import { JournalTab } from './JournalTab.tsx'
 import { LinksTab } from './LinksTab.tsx'
@@ -22,6 +23,7 @@ export const EDITION_TABS: { key: string; label: string; Component: ComponentTyp
   { key: 'equipes', label: 'Équipes', Component: TeamsTab },
   { key: 'pointage', label: 'Pointage', Component: CheckInTab },
   { key: 'poules', label: 'Poules', Component: PoolsTab },
+  { key: 'tableaux', label: 'Tableaux', Component: BracketsTab },
   { key: 'tele', label: 'Télé', Component: TvTab },
   { key: 'liens', label: 'Liens publics', Component: LinksTab },
   { key: 'journal', label: 'Journal', Component: JournalTab },

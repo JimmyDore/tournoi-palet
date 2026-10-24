@@ -1,3 +1,4 @@
+import { bracketsView } from './brackets.ts'
 import type { Event } from './engine.ts'
 import { poolView } from './pool.ts'
 import { SETTING_KEYS, SETTING_LABELS, formatSetting, type EditionSettings } from './settings.ts'
@@ -98,6 +99,31 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
     }
     case 'forfeitCancelled':
       return { label: `Forfait de « ${nameIn(before, event.teamId)} » annulé` }
+    case 'splitValidated': {
+      const split = bracketsView(after).split
+      const label = `Répartition validée : ${event.principalCount} équipes en Principal, ${split.participants - event.principalCount} en Consolante`
+      const previous = before.brackets.principalCount
+      return previous === null ? { label } : { label, before: `${previous} en Principal`, after: `${event.principalCount} en Principal` }
+    }
+    case 'bracketsGenerated': {
+      const { brackets, live } = bracketsView(after)
+      const parts = brackets.map((b) => `${b.name} de ${b.teams}${b.byes ? ` (${b.byes} exempt${b.byes > 1 ? 's' : ''})` : ''}`)
+      const method = after.edition?.settings.bracketFirstRound === 'random' ? 'tirage au sort' : 'têtes de série'
+      const waiting = live.filter((m) => m.status === 'waiting-board').length
+      return { label: `Tableaux générés (${method}) : ${parts.join(', ')}${waiting ? ` ; ${waiting} en attente de planche` : ''}` }
+    }
+    case 'bracketScoreEntered': {
+      const find = (state: EditionState) =>
+        bracketsView(state)
+          .brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))
+          .find((m) => m.id === event.matchId)
+      const match = find(after)
+      const where = match ? `${match.bracketName}, ${match.roundName}${match.board ? `, planche ${match.board}` : ''}` : event.matchId
+      const line = (a: number, b: number) => `« ${nameIn(after, event.teamA)} » ${a}-${b} « ${nameIn(after, event.teamB)} »`
+      const previous = find(before)?.score
+      if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}` }
+      return { label: `Score corrigé (${where})`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
+    }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
     case 'clockStarted':
