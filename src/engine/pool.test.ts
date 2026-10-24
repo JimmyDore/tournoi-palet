@@ -185,6 +185,7 @@ describe('planches : file d’attente quand il y a plus de matchs que de planche
     expect(byId(w1.id)).toMatchObject({ board: p2.board, status: 'playing' })
     expect(byId(p2.id)).toMatchObject({ board: p2.board, status: 'done' })
     expect(round.awaitingBoard).toEqual([w2.id])
+    expect(round.matches.filter((m) => m.board === p2.board).map((m) => m.id)).toEqual([w1.id, p2.id])
 
     // Une correction ne libère pas une deuxième fois la planche.
     t.apply({ type: 'enterPoolScore', matchId: p2.id, scoreA: 13, scoreB: 5 })

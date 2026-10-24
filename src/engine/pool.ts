@@ -202,7 +202,7 @@ export interface PoolMatchView {
 
 export interface PoolRoundView {
   round: number
-  /** Par planche croissante, les matchs en attente de planche à la fin (dans l'ordre de la file). */
+  /** Par planche croissante (sur une même planche, le match en cours d'abord), puis les matchs en attente de planche dans l'ordre de la file. */
   matches: PoolMatchView[]
   bye: { team: PoolTeamRef; score: Score } | null
   /** Matchs sans score (« en attente de score »), par planche. */
@@ -261,7 +261,9 @@ function roundView(state: EditionState, round: PoolRound): PoolRoundView {
     }
   })
   const queue = (id: string) => boards.waiting.indexOf(id)
-  matches.sort((x, y) => (x.board ?? Infinity) - (y.board ?? Infinity) || queue(x.id) - queue(y.id))
+  // Sur une même planche, le match en cours avant celui déjà joué.
+  const done = (m: PoolMatchView) => (m.score ? 1 : 0)
+  matches.sort((x, y) => (x.board ?? Infinity) - (y.board ?? Infinity) || done(x) - done(y) || queue(x.id) - queue(y.id))
   const byeScore = state.edition!.settings.byeScore
   return {
     round: round.round,
