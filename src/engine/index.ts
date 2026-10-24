@@ -22,7 +22,7 @@ export { boardOf, initialBoards, launchMatch, numberedBoards, releaseMatch } fro
 export type { BoardAllocation } from './boards.ts'
 export { initialState } from './state.ts'
 export type { EditionInfo, EditionState, Team } from './state.ts'
-export { adminView, currentEdition, editionSummary, exportView, participants, phaseOf, publicView } from './views.ts'
+export { adminView, currentEdition, editionSummary, palmares, exportView, participants, phaseOf, publicView } from './views.ts'
 export type { AdminTeam, AdminView, EditionSummary, ExportView, Phase, PublicTeam, PublicView } from './views.ts'
 export { milestones } from './milestones.ts'
 export { RANKING_BLOCK_NAMES, finalRanking } from './ranking.ts'
