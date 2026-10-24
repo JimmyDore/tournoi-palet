@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { describeEvent, initialState, publicView, replay, TV_VIEWS, type Command } from './index.ts'
-import { createEdition, run } from './testing.ts'
+import { describeEvent, initialState, openMatches, publicView, replay, tvRotation, TV_VIEWS, type Command } from './index.ts'
+import { bracketsReady, createEdition, run } from './testing.ts'
 
 const setTv = (view: string) => ({ type: 'setTvView', view }) as Command
 
@@ -17,8 +17,23 @@ describe('vue de la télé', () => {
     expect(publicView(t.state).tv.view).toBe('auto')
   })
 
-  it('propose les vues matchs en cours et classement des poules', () => {
-    expect(TV_VIEWS.map((v) => v.key)).toEqual(['matches', 'standings'])
+  it('propose les matchs en cours, le classement des poules, chaque tableau et le classement final', () => {
+    expect(TV_VIEWS.map((v) => v.label)).toEqual([
+      'Matchs en cours',
+      'Classement des poules',
+      'Tableau Principal',
+      'Challenge Principal',
+      'Consolante',
+      'Challenge Consolante',
+      'Classement final',
+    ])
+  })
+
+  it('se bloque sur un tableau, par exemple pendant la finale', () => {
+    const t = bracketsReady(12)
+    t.apply(setTv('bracket-P'))
+    expect(publicView(t.state).tv.view).toBe('bracket-P')
+    expect(tvRotation(publicView(t.state))).toEqual(['bracket-P'])
   })
 
   it('refuse une vue inconnue', () => {
@@ -39,5 +54,37 @@ describe('vue de la télé', () => {
     const at = (n: number) => replay(t.events.slice(0, n), initialState())
     expect(describeEvent(at(1), at(2), locked).label).toBe('Télé bloquée sur « Matchs en cours »')
     expect(describeEvent(at(2), at(3), auto).label).toBe('Télé en rotation automatique')
+  })
+})
+
+describe('rotation automatique de la télé, selon le moment du tournoi', () => {
+  const draw: Command = { type: 'drawPoolRound', round: 1 }
+  const checkedIn = (count: number) =>
+    run([
+      createEdition(),
+      ...Array.from({ length: count }, (_, i): Command => ({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })),
+      ...Array.from({ length: count }, (_, i): Command => ({ type: 'checkInTeam', teamId: `t${i + 1}` })),
+    ])
+
+  it('rien avant le tirage (la télé affiche l’affiche du concours)', () => {
+    expect(tvRotation(publicView(checkedIn(4).state))).toEqual([])
+  })
+
+  it('poules : matchs en cours et classement des poules', () => {
+    expect(tvRotation(publicView(checkedIn(4).apply(draw).state))).toEqual(['matches', 'standings'])
+  })
+
+  it('tableaux : matchs en cours, les tableaux formés et le classement provisoire', () => {
+    const t = bracketsReady(48, { isTest: true })
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'bracket-P', 'bracket-C', 'ranking'])
+    // Le 1er tour joué : les Challenges sont formés.
+    t.apply({ type: 'fillRandomScores' })
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'bracket-P', 'bracket-CP', 'bracket-C', 'bracket-CC', 'ranking'])
+  })
+
+  it('après les finales : classement final puis les tableaux', () => {
+    const t = bracketsReady(48, { isTest: true })
+    while (openMatches(t.state).length > 0) t.apply({ type: 'fillRandomScores' })
+    expect(tvRotation(publicView(t.state))).toEqual(['ranking', 'bracket-P', 'bracket-CP', 'bracket-C', 'bracket-CC'])
   })
 })

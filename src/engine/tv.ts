@@ -1,18 +1,44 @@
+import type { BracketKey } from './brackets.ts'
 import type { EditionState } from './state.ts'
 import { accept, refuse, type Ctx, type Decision } from './types.ts'
+import type { PublicView } from './views.ts'
 
 // Télé : la console peut la bloquer sur une vue, sinon elle tourne seule.
-// Pour ajouter une vue (tableaux, classement final : ticket 15), une entrée
-// dans `TV_VIEWS` et son écran dans `src/client/tele/screens.tsx`.
+// Pour ajouter une vue, une entrée dans `TV_VIEWS` (et dans `tvRotation` si
+// elle tourne seule) et son écran dans `src/client/tele/screens.tsx`.
 
 export const TV_VIEWS = [
   { key: 'matches', label: 'Matchs en cours' },
   { key: 'standings', label: 'Classement des poules' },
+  { key: 'bracket-P', label: 'Tableau Principal' },
+  { key: 'bracket-CP', label: 'Challenge Principal' },
+  { key: 'bracket-C', label: 'Consolante' },
+  { key: 'bracket-CC', label: 'Challenge Consolante' },
+  { key: 'ranking', label: 'Classement final' },
 ] as const
 
 export type TvScreen = (typeof TV_VIEWS)[number]['key']
 /** `auto` : rotation entre toutes les vues qui ont quelque chose à montrer. */
 export type TvViewChoice = 'auto' | TvScreen
+
+/** Vue télé d'un tableau. */
+export const bracketScreen = (key: BracketKey) => `bracket-${key}` as const satisfies TvScreen
+
+/**
+ * Vues qui défilent : la vue bloquée seule, sinon celles qui comptent à ce
+ * moment du tournoi. Poules : matchs et classement des poules. Tableaux :
+ * matchs en cours, tableaux formés, classement provisoire. Après les
+ * finales : classement final, puis les tableaux. Rien avant le tirage.
+ */
+export function tvRotation(view: PublicView): TvScreen[] {
+  if (view.tv.view !== 'auto') return [view.tv.view]
+  if (view.pool.rounds.length === 0) return []
+  const { brackets } = view
+  if (!brackets.generated) return ['matches', 'standings']
+  const trees = brackets.brackets.map((b) => bracketScreen(b.key))
+  if (view.phase === 'after') return ['ranking', ...trees]
+  return [...(brackets.live.length > 0 ? (['matches'] as const) : []), ...trees, 'ranking']
+}
 
 export interface TvState {
   view: TvViewChoice

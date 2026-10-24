@@ -1,14 +1,6 @@
 import type { FinalRankingRow } from '../../engine/index.ts'
+import { rankingStage } from '../format.ts'
 import type { TabProps } from './tabs.tsx'
-
-/** Où l'équipe s'est arrêtée dans son bloc. */
-function stage(row: FinalRankingRow, first: boolean): string {
-  if (row.block === 'forfeit') return 'forfait en poule'
-  if (row.eliminatedIn === 'Finale') return 'finaliste'
-  if (row.eliminatedIn) return `perd en ${row.eliminatedIn}`
-  if (first && row.definitive) return 'vainqueur'
-  return 'encore en lice'
-}
 
 /**
  * Onglet « Classement » : classement final de 1 à N, par blocs (Principal,
@@ -74,13 +66,13 @@ export function RankingTab({ view }: TabProps) {
                 </tr>
               </thead>
               <tbody>
-                {block.map((row, i) => (
+                {block.map((row) => (
                   <tr key={row.team.id} className={row.definitive ? undefined : 'is-provisional'}>
                     <td>
                       <strong>{row.place}</strong>
                     </td>
                     <td className="left">{row.team.name}</td>
-                    <td className="left">{stage(row, i === 0)}</td>
+                    <td className="left">{rankingStage(row)}</td>
                     <td className="ranking-pool">{row.poolRank}e</td>
                     <td className="left">
                       {row.definitive ? <span className="badge badge-final">définitive</span> : <span className="badge badge-wait">provisoire</span>}
