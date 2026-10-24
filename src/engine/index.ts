@@ -1,0 +1,16 @@
+// Interface publique du moteur du tournoi : TypeScript pur, aucun accès à
+// node:*, à la base, au réseau ni à l'horloge. Importé par le serveur et le client.
+export { decide, evolve, replay } from './engine.ts'
+export type { Command, CommandType, Event, EventType } from './engine.ts'
+export type { CreateEdition, UpdateEdition, EditionCreated, EditionUpdated } from './edition.ts'
+export { initialState } from './state.ts'
+export type { EditionInfo, EditionState } from './state.ts'
+export { adminView, currentEdition, editionSummary, phaseOf, publicView } from './views.ts'
+export type { AdminView, EditionSummary, Phase, PublicView } from './views.ts'
+export { describeEvent } from './describe.ts'
+export type { EventDescription } from './describe.ts'
+export { DEFAULT_SETTINGS, MAX_SCORE, MAX_TEAMS_LIMIT, SETTING_LABELS, formatSetting } from './settings.ts'
+export type { BracketFirstRound, EditionSettings } from './settings.ts'
+export { randomInt, randomToken, seededRng, shuffle } from './rng.ts'
+export type { Rng } from './rng.ts'
+export type { Ctx, Decision } from './types.ts'

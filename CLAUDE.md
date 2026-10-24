@@ -20,9 +20,12 @@ Single-context : `GLOSSARY.md` et `docs/adr/` à la racine. See `docs/agents/dom
 
 Un seul process Node (Fastify) sert le client buildé (`dist/`), l'API et le WebSocket `/ws`. Le serveur est en TypeScript exécuté tel quel par Node (type stripping) : imports avec l'extension `.ts`, pas d'`enum` ni de `namespace` (`erasableSyntaxOnly`). Base SQLite via `node:sqlite`, dans `$DATA_DIR/tournoi-palet.db` (`./data` en local).
 
-- `src/client/` : Vite + React + TypeScript.
-- `src/server/` : `app.ts` (`buildApp`, testable sans port fixe), `index.ts` (point d'entrée), `db.ts`.
+- `src/engine/` : moteur du tournoi en TypeScript pur (event sourcing : `decide` / `evolve` / vues / `describeEvent`), sans node:*, base ni horloge. Mode d'emploi pour ajouter une commande en tête de `engine.ts`, helper de test `run()` dans `testing.ts`.
+- `src/client/` : Vite + React + TypeScript. Routage maison (`router.tsx`), vues en direct (`live.ts`), onglets de la console (`console/tabs.tsx`).
+- `src/server/` : `app.ts` (`buildApp`, testable sans port fixe), `index.ts` (point d'entrée), `db.ts` (table `events`), `editions.ts` (rejouage au démarrage, application des commandes), `routes-*.ts`, `ws.ts`, `hub.ts`, `auth.ts`.
 - `scripts/backup.mjs` : snapshot SQLite cohérent, utilisé par la sauvegarde nocturne.
+
+Mot de passe de la console : `ADMIN_PASSWORD` ; en local, s'il est absent, c'est `admin` (en production le serveur refuse de démarrer sans lui).
 
 Node 24 (`.nvmrc`, comme la CI et l'image Docker). Avec le npm 10 de Homebrew, `npm install` plante sur l'arbre de vitest 5 : utiliser `npx -y npm@11 install <paquet>`.
 

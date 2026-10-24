@@ -4,27 +4,42 @@ import path from 'node:path'
 import Fastify, { type FastifyInstance } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import fastifyWebsocket from '@fastify/websocket'
+import { createAuth } from './auth.ts'
+import { createServerContext } from './context.ts'
 import { checkDatabase, openDatabase } from './db.ts'
+import { EditionStore } from './editions.ts'
+import { Hub } from './hub.ts'
+import { registerAdminRoutes } from './routes-admin.ts'
+import { registerPublicRoutes } from './routes-public.ts'
+import { registerWebSocket } from './ws.ts'
 
 export interface AppOptions {
   dataDir: string
   /** Build Vite (dist/) ; absent en test et en dev, où Vite sert le client. */
   staticDir?: string
   logger?: boolean
+  /** Mot de passe de la console. Par défaut `ADMIN_PASSWORD`, sinon `admin` (local). */
+  adminPassword?: string
 }
+
+export const DEFAULT_ADMIN_PASSWORD = 'admin'
 
 const HEALTH_WS_TIMEOUT_MS = 2000
 
-export async function buildApp({ dataDir, staticDir, logger = false }: AppOptions): Promise<FastifyInstance> {
+export async function buildApp({ dataDir, staticDir, logger = false, adminPassword }: AppOptions): Promise<FastifyInstance> {
   const db = openDatabase(dataDir)
   const app = Fastify({ logger })
   app.addHook('onClose', async () => db.close())
 
-  await app.register(fastifyWebsocket)
+  // Rejoue tous les événements de SQLite : l'état est en mémoire dès le démarrage.
+  const store = new EditionStore(db)
+  const password = adminPassword ?? (process.env.ADMIN_PASSWORD?.trim() || DEFAULT_ADMIN_PASSWORD)
+  const ctx = createServerContext(store, new Hub(), createAuth(password))
 
-  app.get('/ws', { websocket: true }, (socket) => {
-    socket.send(JSON.stringify({ type: 'hello' }))
-  })
+  await app.register(fastifyWebsocket)
+  registerWebSocket(app, ctx)
+  registerAdminRoutes(app, ctx)
+  registerPublicRoutes(app, ctx)
 
   // GET et HEAD (Fastify expose HEAD sur chaque route GET). La sonde WebSocket
   // ouvre une vraie connexion vers le serveur lui-même : elle prouve que
