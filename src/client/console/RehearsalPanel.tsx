@@ -5,7 +5,7 @@ import { sendCommand } from '../api.ts'
 /**
  * Panneau « Répétition générale », affiché seulement sur une édition de test :
  * générer des équipes fictives déjà pointées, puis remplir au hasard les
- * scores de la partie en cours. Le moteur refuse tout sur une vraie édition.
+ * scores de la partie en cours, puis ceux des matchs de tableau lancés. Le moteur refuse tout sur une vraie édition.
  */
 export function RehearsalPanel({ view }: { view: AdminView }) {
   const [count, setCount] = useState('32')
@@ -18,6 +18,7 @@ export function RehearsalPanel({ view }: { view: AdminView }) {
   const started = view.pool.currentRound !== null
   const current = view.pool.rounds.at(-1)
   const open = current?.awaitingScore.length ?? 0
+  const inBrackets = view.brackets.live.length
   const room = MAX_TEAMS_LIMIT - view.teams.length
 
   const send = async (command: Parameters<typeof sendCommand>[1], success: string) => {
@@ -57,6 +58,22 @@ export function RehearsalPanel({ view }: { view: AdminView }) {
             {view.teams.length} équipe{view.teams.length > 1 ? 's' : ''} déjà là, {MAX_TEAMS_LIMIT} au plus. Elles arrivent déjà pointées ; le plafond est relevé si besoin.
           </p>
         </form>
+      ) : view.brackets.generated ? (
+        <div className="rehearsal-row">
+          <button
+            type="button"
+            className="btn"
+            disabled={busy || inBrackets === 0}
+            onClick={() => void send({ type: 'fillRandomScores' }, `Tableaux : ${inBrackets} score${inBrackets > 1 ? 's' : ''} rempli${inBrackets > 1 ? 's' : ''} au hasard.`)}
+          >
+            Remplir les scores des matchs en cours
+          </button>
+          <p className="muted small">
+            {inBrackets > 0
+              ? `${inBrackets} match${inBrackets > 1 ? 's' : ''} lancé${inBrackets > 1 ? 's' : ''} sans score (sur planche ou en attente), remplis au hasard ; les tours qu’ils complètent sont lancés aussitôt.`
+              : 'Tous les matchs des tableaux sont joués.'}
+          </p>
+        </div>
       ) : (
         <div className="rehearsal-row">
           <button

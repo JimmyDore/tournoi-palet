@@ -96,7 +96,7 @@ export function PoolsTab({ view }: TabProps) {
 
   return (
     <div className="stack">
-      <RehearsalPanel view={view} />
+      {!view.brackets.generated && <RehearsalPanel view={view} />}
       <section className="panel">
         <h2>Poules</h2>
         {current ? (

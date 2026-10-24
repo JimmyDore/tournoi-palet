@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { POOL_ROUNDS, bracketSize, type BracketMatchView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
+import { POOL_ROUNDS, bracketSize, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { MatchList } from './PoolsTab.tsx'
+import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`
@@ -20,11 +21,13 @@ const seeded = (team: BracketTeamRef | null) => (team ? { ...team, name: `${team
 
 /**
  * Onglet « Tableaux » : répartition Principal / Consolante proposée,
- * ajustable et validée, génération des tableaux, puis premier tour avec ses
- * planches et la saisie des scores.
+ * ajustable et validée, génération des tableaux, puis chaque tableau en arbre
+ * (un tour par colonne), les planches, la file d’attente et la saisie des
+ * scores de tous les matchs lancés.
  */
 export function BracketsTab({ view }: TabProps) {
-  const { split, generated, brackets } = view.brackets
+  const { split, generated, brackets, live } = view.brackets
+  const queue = live.filter((m) => m.status === 'waiting-board').map((m) => m.id)
   const current = split.validatedPrincipal ?? split.proposedPrincipal
   const [count, setCount] = useState(String(current))
   const [dirty, setDirty] = useState(false)
@@ -164,16 +167,18 @@ export function BracketsTab({ view }: TabProps) {
 
       {generated && (
         <>
+          <RehearsalPanel view={view} />
           <section className="panel">
             <h2>Tableaux</h2>
             <p className="muted small">
-              Premier tour {view.settings.bracketFirstRound === 'random' ? 'tiré au sort' : 'en têtes de série'}. Cliquez sur un match pour saisir ou corriger son
-              score (Tab passe au second score, Entrée valide, Échap annule). Entre parenthèses : le rang au classement des poules.
+              Premier tour {view.settings.bracketFirstRound === 'random' ? 'tiré au sort' : 'en têtes de série'}. Les vainqueurs avancent d’eux-mêmes ; quand un tour
+              est complet, le suivant est lancé sur les planches libres (les matchs sans planche la prennent dès qu’une se libère). Cliquez sur un match pour saisir
+              ou corriger son score (Tab passe au second score, Entrée valide, Échap annule). Entre parenthèses : le rang au classement des poules.
             </p>
             {feedback}
           </section>
           {brackets.map((b) => (
-            <BracketPanel key={b.key} bracket={b} editing={editing} onEdit={setEditing} onSave={save} />
+            <BracketPanel key={b.key} bracket={b} editing={editing} onEdit={setEditing} onSave={save} queue={queue} />
           ))}
         </>
       )}
@@ -213,50 +218,137 @@ function BracketPanel({
   editing,
   onEdit,
   onSave,
+  queue,
 }: {
   bracket: BracketView
   editing: string | null
   onEdit: (id: string | null) => void
   onSave: (match: BracketMatchView, a: number | null, b: number | null) => Promise<string | null>
+  /** Ids des matchs en attente de planche, dans l'ordre de la file. */
+  queue: string[]
 }) {
+  // Tours qui ont au moins un match lancé : le plus récent d'abord ; les tours pas encore lancés ne sont que dans l'arbre.
+  const started = bracket.rounds.filter((r) => r.matches.some((m) => m.status !== 'pending' && m.status !== 'bye')).reverse()
+  const final = bracket.rounds.at(-1)?.matches[0]
   return (
-    <section className="panel">
+    <section className="panel" aria-label={`Tableau ${bracket.name}`}>
       <h2>
         {bracket.name} <span className="muted small">{sizeLine(bracket.teams)}</span>
       </h2>
-      {bracket.rounds.map((round) => {
-        const real = round.matches.filter((m) => m.status !== 'bye')
-        const byes = round.matches.filter((m) => m.status === 'bye')
-        const missing = real.filter((m) => !m.score).length
-        // MatchList attend des noms : on y met le rang des poules, et on retrouve le match d'origine à la saisie.
-        const shown = (list: BracketMatchView[]) => list.map((m) => ({ ...m, teamA: seeded(m.teamA), teamB: seeded(m.teamB), match: m }))
-        const onBoard = real.filter((m) => m.board !== null)
-        const waiting = real.filter((m) => m.board === null)
-        return (
-          <div key={round.round}>
-            <h3 className="pool-subtitle">
-              {round.name} : {missing ? `${missing} / ${real.length} sans score` : 'tous les scores sont saisis'}
-            </h3>
-            <MatchList matches={shown(onBoard)} editing={editing} onEdit={onEdit} onCancel={() => onEdit(null)} onSave={(m, a, b) => onSave(m.match, a, b)} />
-            {waiting.length > 0 && (
-              <>
-                <p className="muted small">En attente de planche ({waiting.length}) : ils prennent la prochaine planche libérée, dans cet ordre.</p>
-                <MatchList matches={shown(waiting)} editing={editing} onEdit={onEdit} onCancel={() => onEdit(null)} onSave={(m, a, b) => onSave(m.match, a, b)} />
-              </>
-            )}
-            {byes.length > 0 && (
-              <p className="pool-bye">
-                Exempts du {round.name} (qualifiés d’office) :{' '}
-                {byes
-                  .map((m) => (m.teamA ?? m.teamB)!)
-                  .sort((x, y) => x.poolRank - y.poolRank)
-                  .map((t) => seeded(t).name)
-                  .join(', ')}
-              </p>
-            )}
-          </div>
-        )
-      })}
+      {bracket.winner ? (
+        <p className="bracket-winner" role="status">
+          Vainqueur {bracket.key === 'C' ? 'de la' : 'du'} {bracket.name} : <strong>{seeded(bracket.winner).name}</strong>
+          {final?.score && <span className="muted"> ({Math.max(final.score.a, final.score.b)}-{Math.min(final.score.a, final.score.b)} en finale)</span>}
+        </p>
+      ) : null}
+      {started.map((round) => (
+        <RoundScores key={round.round} round={round} editing={editing} onEdit={onEdit} onSave={onSave} queue={queue} />
+      ))}
+      <h3 className="pool-subtitle">Arbre du tableau</h3>
+      <BracketTree bracket={bracket} />
     </section>
+  )
+}
+
+/** Arbre du tableau, une colonne par tour : planche, équipes, score ; en lecture seule (la saisie est en dessous). */
+function BracketTree({ bracket }: { bracket: BracketView }) {
+  return (
+    <div className="bracket-tree" role="list" aria-label={`Arbre du ${bracket.name}`}>
+      {bracket.rounds.map((round) => (
+        <div key={round.round} className="bracket-col" role="listitem">
+          <h3 className="bracket-col-title">{round.name}</h3>
+          <div className="bracket-col-matches">
+            {round.matches.map((m) => (
+              <TreeMatch key={m.id} match={m} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const TREE_STATUS: Record<BracketMatchView['status'], string> = {
+  playing: 'en cours',
+  'waiting-board': 'attend une planche',
+  done: 'joué',
+  pending: 'à venir',
+  bye: 'exempt',
+}
+
+function TreeMatch({ match: m }: { match: BracketMatchView }) {
+  const won = (side: 'a' | 'b') => (m.score ? (side === 'a' ? m.score.a > m.score.b : m.score.b > m.score.a) : m.status === 'bye' && (side === 'a' ? m.teamA : m.teamB) !== null)
+  const team = (t: BracketTeamRef | null, side: 'a' | 'b') => (
+    <span className={`bracket-team${won(side) ? ' is-winner' : ''}${t ? '' : ' is-unknown'}`}>
+      <span className="bracket-team-name">{t ? seeded(t).name : m.status === 'bye' ? 'exempt' : 'à déterminer'}</span>
+      {m.score && <span className="bracket-team-score">{side === 'a' ? m.score.a : m.score.b}</span>}
+    </span>
+  )
+  return (
+    <div className={`bracket-match is-${m.status}`} title={`${m.roundName} : ${TREE_STATUS[m.status]}`}>
+      <span className="bracket-match-board">
+        {m.board ? `Planche ${m.board}` : m.status === 'waiting-board' ? 'En attente de planche' : TREE_STATUS[m.status]}
+      </span>
+      {team(m.teamA, 'a')}
+      {team(m.teamB, 'b')}
+    </div>
+  )
+}
+
+/** Saisie des scores d'un tour lancé ; un tour terminé se replie (on le rouvre pour corriger). */
+function RoundScores({
+  round,
+  editing,
+  onEdit,
+  onSave,
+  queue,
+}: {
+  round: BracketRoundView
+  editing: string | null
+  onEdit: (id: string | null) => void
+  onSave: (match: BracketMatchView, a: number | null, b: number | null) => Promise<string | null>
+  queue: string[]
+}) {
+  const real = round.matches.filter((m) => m.status !== 'bye')
+  const byes = round.matches.filter((m) => m.status === 'bye')
+  const missing = real.filter((m) => !m.score).length
+  const [open, setOpen] = useState(false)
+  const shownOpen = missing > 0 || open || real.some((m) => m.id === editing)
+  // MatchList attend des noms : on y met le rang des poules, et on retrouve le match d'origine à la saisie.
+  const shown = (list: BracketMatchView[]) => list.map((m) => ({ ...m, teamA: seeded(m.teamA), teamB: seeded(m.teamB), match: m }))
+  const onBoard = real.filter((m) => m.board !== null)
+  const waiting = real.filter((m) => m.status === 'waiting-board').sort((x, y) => queue.indexOf(x.id) - queue.indexOf(y.id))
+  return (
+    <div className="bracket-round">
+      <h3 className="pool-subtitle">
+        {round.name} : {missing ? `${missing} / ${real.length} sans score` : 'tous les scores sont saisis'}
+        {missing === 0 && (
+          <button type="button" className="btn btn-small" onClick={() => setOpen(!shownOpen)} aria-expanded={shownOpen}>
+            {shownOpen ? 'Replier' : 'Voir ou corriger'}
+          </button>
+        )}
+      </h3>
+      {shownOpen && (
+        <>
+          <MatchList matches={shown(onBoard)} editing={editing} onEdit={onEdit} onCancel={() => onEdit(null)} onSave={(m, a, b) => onSave(m.match, a, b)} />
+          {waiting.length > 0 && (
+            <>
+              <p className="muted small">En attente de planche ({waiting.length}) : ils prennent la prochaine planche libérée, dans cet ordre.</p>
+              <MatchList matches={shown(waiting)} editing={editing} onEdit={onEdit} onCancel={() => onEdit(null)} onSave={(m, a, b) => onSave(m.match, a, b)} />
+            </>
+          )}
+          {byes.length > 0 && (
+            <p className="pool-bye">
+              Exempts du {round.name} (qualifiés d’office) :{' '}
+              {byes
+                .map((m) => (m.teamA ?? m.teamB)!)
+                .sort((x, y) => x.poolRank - y.poolRank)
+                .map((t) => seeded(t).name)
+                .join(', ')}
+            </p>
+          )}
+        </>
+      )}
+    </div>
   )
 }

@@ -988,3 +988,118 @@ a {
   flex-basis: 100%;
   margin: 0;
 }
+
+/* Tableaux : arbre, un tour par colonne (défilement horizontal si besoin) */
+.bracket-winner {
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--or);
+  background: var(--or-clair);
+  border-radius: 6px;
+  font-size: 1.05rem;
+}
+
+.bracket-tree {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.bracket-col {
+  flex: 1 0 10.5rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bracket-col-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--petrole);
+}
+
+/* Les tours suivants se centrent face aux deux matchs qui les alimentent. */
+.bracket-col-matches {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.35rem;
+}
+
+.bracket-match {
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  background: var(--blanc);
+  padding: 0.25rem 0.45rem;
+  font-size: 0.82rem;
+}
+
+.bracket-match.is-playing {
+  border-color: var(--petrole);
+  box-shadow: inset 3px 0 0 var(--petrole);
+}
+
+.bracket-match.is-waiting-board {
+  border-color: var(--or);
+  box-shadow: inset 3px 0 0 var(--or);
+}
+
+.bracket-match.is-pending,
+.bracket-match.is-bye {
+  background: var(--petrole-clair);
+}
+
+.bracket-match-board {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gris);
+}
+
+.is-playing .bracket-match-board {
+  color: var(--petrole);
+}
+
+.is-waiting-board .bracket-match-board {
+  color: #7a5a00;
+}
+
+.bracket-team {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.bracket-team-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bracket-team.is-winner {
+  color: var(--vert);
+}
+
+.bracket-team.is-unknown {
+  color: var(--gris);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.bracket-team-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.bracket-round .pool-subtitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
