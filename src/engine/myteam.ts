@@ -37,6 +37,8 @@ export interface MyTeamView {
   standing: PoolStanding | null
   /** Nombre d'équipes classées. */
   teamCount: number
+  /** « Ton lot » : seulement une fois sa place finale définitive, `null` sinon ou sans lot. */
+  prize: string | null
 }
 
 export function myTeamView(view: PublicView, teamId: string): MyTeamView | null {
@@ -60,7 +62,9 @@ export function myTeamView(view: PublicView, teamId: string): MyTeamView | null 
   }
 
   const next: MyNext = standing?.forfeit ? { kind: 'forfeit' } : nextOf(view, teamId, standing !== null)
-  return { team, next, results, standing, teamCount: pool.standings.length }
+  const place = view.ranking.rows.find((r) => r.team.id === teamId)
+  const prize = place?.definitive ? place.prize : null
+  return { team, next, results, standing, teamCount: pool.standings.length, prize }
 }
 
 function nextOf(view: PublicView, teamId: string, drawn: boolean): MyNext {

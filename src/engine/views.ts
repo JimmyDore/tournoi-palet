@@ -4,6 +4,7 @@ import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
 import { poolView, type PoolStanding, type PoolView } from './pool.ts'
+import { prizesView, type PrizesView } from './prizes.ts'
 import { finalRanking, type FinalRanking } from './ranking.ts'
 import { requireEdition, type EditionState } from './state.ts'
 import type { TvState } from './tv.ts'
@@ -140,6 +141,8 @@ export interface AdminView {
   brackets: BracketsView
   /** Classement final de 1 à N, provisoire tant que des places restent à jouer. */
   ranking: FinalRanking
+  /** Tranches de lots et places non couvertes. */
+  prizes: PrizesView
   tv: TvState
   clock: ClockState | null
 }
@@ -174,6 +177,7 @@ export function adminView(state: EditionState): AdminView {
     pool: poolView(state),
     brackets,
     ranking,
+    prizes: prizesView(state),
     tv: state.tv,
     clock: state.clock,
   }

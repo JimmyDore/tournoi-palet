@@ -7,7 +7,7 @@ import { formatDate, formatPrice, formatTime, phoneHref } from '../format.ts'
 import { useEditionView } from '../live.ts'
 import { Link } from '../router.tsx'
 import { MyTeam, useChosenTeam } from './MyTeam.tsx'
-import { FinalRankingCard, PublicBrackets, Winners } from './PublicResults.tsx'
+import { FinalRankingCard, MyFinalPlace, PublicBrackets, Winners } from './PublicResults.tsx'
 import { CurrentMatches, PoolStandings } from './PoolSections.tsx'
 import './phone.css'
 
@@ -71,6 +71,7 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
             {view.name}
             <span className="results-date">{formatDate(view.date)} · concours terminé</span>
           </p>
+          <MyFinalPlace view={view} teamId={teamId} />
           <Winners view={view} />
           <FinalRankingCard view={view} teamId={teamId} />
           <PublicBrackets view={view} teamId={teamId} />
@@ -81,6 +82,7 @@ function EditionPage({ view, offline }: { view: PublicView; offline: boolean }) 
           <p className="phone-edition">{view.name}</p>
           <MyTeam view={view} teamId={teamId} choose={choose} />
           <CurrentMatches view={view} teamId={teamId} />
+          <FinalRankingCard view={view} teamId={teamId} />
           <PoolStandings view={view} teamId={teamId} />
           <EditionInfo view={view} />
         </>

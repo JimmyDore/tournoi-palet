@@ -5,6 +5,7 @@ import { SETTING_KEYS, SETTING_LABELS, formatSetting, type EditionSettings } fro
 import type { EditionState } from './state.ts'
 import { clockLabel } from './clock.ts'
 import { tvViewLabel } from './tv.ts'
+import { formatRange, type PrizeRange } from './prizes.ts'
 import { TEAM_FIELD_KEYS, TEAM_FIELD_LABELS, teamName, teamStatuses, type TeamFields } from './teams.ts'
 
 /** Une ligne du journal : ce qui a été fait, et les valeurs avant / après. */
@@ -149,6 +150,10 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
     case 'clockStarted':
     case 'clockStopped':
       return { label: clockLabel(event, before) }
+    case 'prizesSet': {
+      const show = (prizes: PrizeRange[]) => prizes.map((p) => `${formatRange(p)} : ${p.label}`).join(' ; ') || '(aucun)'
+      return { label: 'Lots modifiés', before: show(before.prizes), after: show(event.prizes) }
+    }
   }
 }
 

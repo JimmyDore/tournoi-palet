@@ -1,14 +1,31 @@
 import type { BracketMatchView, BracketView, FinalRankingRow, PublicView } from '../../engine/index.ts'
 
-/** Ligne du classement, avec le lot quand l'édition en a (ticket 16). */
-type RankingRow = FinalRankingRow & { lot?: string | null }
-
 /** Où l'équipe s'est arrêtée dans son bloc. */
 function stage(row: FinalRankingRow, first: boolean): string {
   if (row.block === 'forfeit') return 'forfait en poule'
   if (row.eliminatedIn === 'Finale') return 'finaliste'
   if (row.eliminatedIn) return `perd en ${row.eliminatedIn}`
   return first && row.definitive ? 'vainqueur' : 'encore en lice'
+}
+
+/** Édition terminée : place finale et lot de l'équipe choisie sur ce téléphone (« mon équipe » n'y est plus). */
+export function MyFinalPlace({ view, teamId }: { view: PublicView; teamId: string | null }) {
+  const row = teamId ? view.ranking.rows.find((r) => r.team.id === teamId) : undefined
+  if (!row) return null
+  const place = row.place === 1 ? '1re' : `${row.place}e`
+  return (
+    <section className="card my-final" aria-label="Mon équipe">
+      <p className="my-team-label">Ton équipe : {row.team.name}</p>
+      <p className="my-place">
+        <strong>{place}</strong> sur {view.ranking.rows.length}
+      </p>
+      {row.definitive && row.prize && (
+        <p className="my-prize">
+          Ton lot : <strong>{row.prize}</strong>
+        </p>
+      )}
+    </section>
+  )
 }
 
 /** Vainqueurs des quatre tableaux, en tête de la page d'une édition terminée. */
@@ -34,9 +51,9 @@ export function Winners({ view }: { view: PublicView }) {
 
 /** Classement final de 1 à N (téléphone), par blocs ; la colonne Lot n'apparaît que si un lot est renseigné. */
 export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: string | null }) {
-  const rows = view.ranking.rows as RankingRow[]
+  const rows = view.ranking.rows
   if (rows.length === 0) return null
-  const withLots = rows.some((r) => r.lot)
+  const withLots = rows.some((r) => r.prize !== null)
   return (
     <section className="card" aria-label="Classement final">
       <h2 className="card-title">Classement final</h2>
@@ -66,7 +83,7 @@ export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: s
                   {row.team.name}
                   <span className="results-stage">{stage(row, startsBlock)}</span>
                 </td>
-                {withLots && <td className="name results-lot">{row.lot ?? ''}</td>}
+                {withLots && <td className="name results-lot">{row.prize ?? ''}</td>}
               </tr>,
             ]
           })}
