@@ -120,12 +120,29 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       const where = match ? `${match.bracketName}, ${match.roundName}${match.board ? `, planche ${match.board}` : ''}` : event.matchId
       const line = (a: number, b: number) => `« ${nameIn(after, event.teamA)} » ${a}-${b} « ${nameIn(after, event.teamB)} »`
       const previous = find(before)?.score
-      if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}` }
+      if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}${launchedBy(before, after)}` }
       return { label: `Score corrigé (${where})`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
     }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
   }
+}
+
+/** « ; lancement des 1/2 du Principal, 1 en attente de planche » quand le score a complété un tour. */
+function launchedBy(before: EditionState, after: EditionState): string {
+  const pending = new Set(
+    bracketsView(before)
+      .brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))
+      .filter((m) => m.status === 'pending')
+      .map((m) => m.id),
+  )
+  const launched = bracketsView(after).live.filter((m) => pending.has(m.id))
+  if (launched.length === 0) return ''
+  const [first] = launched
+  const what = first.roundName === 'Finale' ? 'de la finale' : `des ${first.roundName}`
+  const waiting = launched.filter((m) => m.status === 'waiting-board').length
+  const of = first.bracket === 'C' ? 'de la' : 'du'
+  return ` ; lancement ${what} ${of} ${first.bracketName}${waiting ? `, ${waiting} en attente de planche` : ''}`
 }
 
 function nameIn(state: EditionState, teamId: string): string {

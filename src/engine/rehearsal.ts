@@ -1,4 +1,5 @@
 import type { Command, Event } from './engine.ts'
+import { bracketsView } from './brackets.ts'
 import { poolView } from './pool.ts'
 import { randomInt, type Rng } from './rng.ts'
 import { MAX_SCORE, MAX_TEAMS_LIMIT } from './settings.ts'
@@ -19,7 +20,7 @@ export interface GenerateFakeTeams {
   count: number
 }
 
-/** Saisit un score au hasard pour chaque match sans score de la partie en cours. */
+/** Saisit un score au hasard pour chaque match en cours sans score (partie de poule, ou tableaux). */
 export interface FillRandomScores {
   type: 'fillRandomScores'
 }
@@ -42,15 +43,18 @@ export interface OpenMatch {
 
 /**
  * Matchs à remplir par la répétition : ceux de la partie de poule en cours
- * encore sans score (sur planche ou en attente de planche).
- * Ticket 12 : y ajouter les matchs de tableau lancés sans score.
+ * encore sans score, puis les matchs de tableau lancés sans score (sur
+ * planche ou en attente de planche). Les matchs que leur saisie lance (tour
+ * suivant) attendent le remplissage d'après.
  */
 export function openMatches(state: EditionState): OpenMatch[] {
-  const round = poolView(state).rounds.at(-1)
-  if (!round) return []
-  return round.matches
+  const pool = (poolView(state).rounds.at(-1)?.matches ?? [])
     .filter((m) => !m.score)
-    .map((m) => ({ id: m.id, enter: (scoreA, scoreB) => ({ type: 'enterPoolScore', matchId: m.id, scoreA, scoreB }) }))
+    .map((m): OpenMatch => ({ id: m.id, enter: (scoreA, scoreB) => ({ type: 'enterPoolScore', matchId: m.id, scoreA, scoreB }) }))
+  const brackets = bracketsView(state).live.map(
+    (m): OpenMatch => ({ id: m.id, enter: (scoreA, scoreB) => ({ type: 'enterBracketScore', matchId: m.id, scoreA, scoreB }) }),
+  )
+  return [...pool, ...brackets]
 }
 
 // --- decide ----------------------------------------------------------------
@@ -84,7 +88,7 @@ export function decideRehearsal(state: EditionState, command: RehearsalCommand, 
     }
     case 'fillRandomScores': {
       const open = openMatches(state)
-      if (open.length === 0) return refuse('Aucun match sans score dans la partie en cours.')
+      if (open.length === 0) return refuse(state.brackets.grids ? 'Aucun match de tableau en cours sans score.' : 'Aucun match sans score dans la partie en cours.')
       return chain(
         state,
         open.map((m) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adminView, poolView, replay, type Command, type PoolStanding } from './index.ts'
+import { adminView, bracketsView, poolView, replay, type Command, type PoolStanding } from './index.ts'
 import { createEdition, run, type Harness } from './testing.ts'
 
 // Répétition générale : équipes fictives et scores au hasard, éditions de test seulement.
@@ -142,5 +142,50 @@ describe('répétition des 4 parties de poule', () => {
 
   it.each([1, 2, 3, 4, 5])('41 équipes, graine %i : les 4 parties se déroulent sans refus', (seed) => {
     expect(() => playPools(rehearsal(41, seed))).not.toThrow()
+  })
+
+  describe('répétition des tableaux', () => {
+    /** Poules jouées, répartition proposée validée, tableaux générés. */
+    function bracketsStarted(count: number) {
+      const t = playPools(rehearsal(count))
+      t.apply({ type: 'validateSplit', principalCount: bracketsView(t.state).split.proposedPrincipal })
+      return t.apply({ type: 'generateBrackets' })
+    }
+
+    it('remplit les matchs de tableau lancés sans score, tour par tour', () => {
+      const t = bracketsStarted(48)
+      const first = bracketsView(t.state).live[0]
+      t.apply({ type: 'enterBracketScore', matchId: first.id, scoreA: 3, scoreB: 13 })
+      t.apply(fill)
+      const view = bracketsView(t.state)
+      const p = view.brackets.find((b) => b.key === 'P')!
+      expect(p.rounds[0].matches.find((m) => m.id === first.id)!.score).toEqual({ a: 3, b: 13 })
+      expect(p.rounds[0].matches.every((m) => m.status === 'done')).toBe(true)
+      // Les 1/8 du Principal et les 1/4 de la Consolante viennent d'être lancés, pas encore remplis.
+      expect(p.rounds[1].matches.every((m) => m.status === 'playing' && !m.score)).toBe(true)
+      expect(view.live).toHaveLength(8 + 4)
+    })
+
+    it.each([16, 33, 40, 48, 52, 64])('%i équipes : de bout en bout jusqu’aux finales du Principal et de la Consolante', (count) => {
+      const t = bracketsStarted(count)
+      let clicks = 0
+      while (bracketsView(t.state).live.length > 0) {
+        t.apply(fill)
+        clicks++
+      }
+      const { brackets } = bracketsView(t.state)
+      const rounds = (key: string) => brackets.find((b) => b.key === key)!.rounds.length
+      // Un clic par tour du plus long tableau (les deux avancent ensemble).
+      expect(clicks).toBe(Math.max(rounds('P'), rounds('C')))
+      for (const b of brackets) {
+        const final = b.rounds.at(-1)!.matches[0]
+        expect(final).toMatchObject({ roundName: 'Finale', status: 'done' })
+        expect(b.winner).not.toBeNull()
+        expect([final.teamA!.id, final.teamB!.id]).toContain(b.winner!.id)
+        expect(b.rounds.every((r) => r.matches.every((m) => m.status === 'done' || m.status === 'bye'))).toBe(true)
+      }
+      expect(t.refusal(fill)).toBe('Aucun match de tableau en cours sans score.')
+      expect(bracketsView(replay(t.events)).brackets).toEqual(brackets)
+    })
   })
 })

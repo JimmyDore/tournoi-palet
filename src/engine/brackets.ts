@@ -243,30 +243,23 @@ export function evolveBrackets(state: EditionState, event: BracketEvent): Editio
     case 'splitValidated':
       return { ...state, brackets: { ...brackets, principalCount: event.principalCount } }
     case 'bracketsGenerated': {
-      const grids = { P: event.principal, C: event.consolante }
       // Tous les vrais matchs du 1er tour sont lancés : Principal puis Consolante, dans l'ordre de la grille.
-      const launches = (['P', 'C'] as const).flatMap((key) => firstRound(key, grids[key]).filter((m) => m.teamA && m.teamB))
-      return {
-        ...state,
-        brackets: {
-          ...brackets,
-          grids,
-          generatedAt: event.at,
-          boardLog: [...brackets.boardLog, ...launches.map((m): BoardLogEntry => ({ kind: 'launch', matchId: m.id }))],
-        },
-      }
+      const generated = { ...state, brackets: { ...brackets, grids: { P: event.principal, C: event.consolante }, generatedAt: event.at } }
+      return launch(generated, synchronizedLaunches(generated))
     }
     case 'bracketScoreEntered': {
       const { matchId, scoreA, scoreB, teamA, teamB, at } = event
       const released = brackets.boardLog.some((e) => e.kind === 'release' && e.matchId === matchId)
-      return {
+      const scored = {
         ...state,
         brackets: {
           ...brackets,
           scores: { ...brackets.scores, [matchId]: { a: scoreA, b: scoreB, teamA, teamB, at } },
-          boardLog: released ? brackets.boardLog : [...brackets.boardLog, { kind: 'release', matchId }],
+          boardLog: released ? brackets.boardLog : [...brackets.boardLog, { kind: 'release' as const, matchId }],
         },
       }
+      // La planche libérée d'abord : le tour suivant, s'il devient complet, la récupère.
+      return launch(scored, synchronizedLaunches(scored))
     }
   }
 }
@@ -306,34 +299,113 @@ interface DerivedMatch {
   bracket: BracketKey
   round: number
   index: number
+  /** Nombre de matchs du tour (1 = finale). */
+  roundSize: number
+  /** `null` : exempt (tour 1) ou équipe pas encore connue (vainqueur d'un match pas joué). */
   teamA: string | null
   teamB: string | null
   /** Un des deux côtés est un exempt : pas de match, l'autre équipe avance. */
   bye: boolean
   launched: boolean
+  /** Score qui compte (saisi avec les équipes actuelles du match). */
+  score: Score | null
+  /** Équipe qualifiée pour le tour suivant : celle de l'exempt, ou le vainqueur ; `null` tant que pas joué. */
+  winner: string | null
 }
 
-function firstRound(bracket: BracketKey, grid: readonly Slot[]): Omit<DerivedMatch, 'launched'>[] {
-  return Array.from({ length: grid.length / 2 }, (_, index) => {
-    const teamA = grid[2 * index]
-    const teamB = grid[2 * index + 1]
-    return { id: `${bracket}:1:${index}`, bracket, round: 1, index, teamA, teamB, bye: teamA === null || teamB === null }
-  })
-}
-
-/** Matchs connus des tableaux. Ticket 12 : ajouter les tours suivants (vainqueurs des matchs 2i et 2i+1). */
-function bracketMatches(state: EditionState): DerivedMatch[] {
+/** Grilles du 1er tour de chaque tableau, dans l'ordre d'affichage. Ticket 13 : y ajouter CP et CC. */
+function bracketGrids(state: EditionState): [BracketKey, readonly Slot[]][] {
   const grids = state.brackets.grids
-  if (!grids) return []
-  const launched = new Set(state.brackets.boardLog.filter((e) => e.kind === 'launch').map((e) => e.matchId))
-  return (['P', 'C'] as const).flatMap((key) => firstRound(key, grids[key]).map((m) => ({ ...m, launched: launched.has(m.id) })))
+  return grids ? [['P', grids.P], ['C', grids.C]] : []
+}
+
+/** Matchs lancés (tours synchronisés ou, ticket 14, « prêts »), d'après la trace des lancements. */
+function launchedMatches(state: EditionState): Set<string> {
+  return new Set(state.brackets.boardLog.filter((e) => e.kind === 'launch').map((e) => e.matchId))
+}
+
+/** Tous les matchs d'un tableau, tour par tour : tour k+1, match i = vainqueurs des matchs 2i et 2i+1 du tour k. */
+function deriveBracket(state: EditionState, bracket: BracketKey, grid: readonly Slot[], launched: Set<string>): DerivedMatch[] {
+  const matches: DerivedMatch[] = []
+  let sides: (string | null)[] = [...grid]
+  for (let round = 1; sides.length >= 2; round++) {
+    const roundSize = sides.length / 2
+    const current = Array.from({ length: roundSize }, (_, index): DerivedMatch => {
+      const teamA = sides[2 * index]
+      const teamB = sides[2 * index + 1]
+      const id = `${bracket}:${round}:${index}`
+      // Seul le 1er tour a des exempts ; ensuite un côté vide est une équipe pas encore connue.
+      const bye = round === 1 && (teamA === null || teamB === null)
+      const score = !bye && teamA && teamB ? validScore(state, id, teamA, teamB) : null
+      const winner = bye ? (teamA ?? teamB) : score ? (score.a > score.b ? teamA : teamB) : null
+      return { id, bracket, round, index, roundSize, teamA, teamB, bye, launched: launched.has(id), score, winner }
+    })
+    matches.push(...current)
+    sides = current.map((m) => m.winner)
+  }
+  return matches
+}
+
+/** Matchs des tableaux, tous les tours. */
+function bracketMatches(state: EditionState): DerivedMatch[] {
+  const launched = launchedMatches(state)
+  return bracketGrids(state).flatMap(([key, grid]) => deriveBracket(state, key, grid, launched))
 }
 
 /** Score qui compte : celui saisi, s'il a été saisi avec les équipes actuelles du match. */
-function validScore(state: EditionState, m: DerivedMatch): Score | null {
-  const s = state.brackets.scores[m.id]
-  if (!s || s.teamA !== m.teamA || s.teamB !== m.teamB) return null
+function validScore(state: EditionState, matchId: string, teamA: string, teamB: string): Score | null {
+  const s = state.brackets.scores[matchId]
+  if (!s || s.teamA !== teamA || s.teamB !== teamB) return null
   return { a: s.a, b: s.b }
+}
+
+/** Un tour est complet quand chacun de ses matchs a un qualifié (exempt ou score saisi). */
+const roundComplete = (matches: readonly DerivedMatch[]) => matches.every((m) => m.winner !== null)
+
+/** Les matchs regroupés par tableau puis par tour, dans l'ordre. */
+function byRound(matches: readonly DerivedMatch[]): DerivedMatch[][] {
+  const rounds = new Map<string, DerivedMatch[]>()
+  for (const m of matches) {
+    const key = `${m.bracket}:${m.round}`
+    rounds.set(key, [...(rounds.get(key) ?? []), m])
+  }
+  return [...rounds.values()]
+}
+
+/** Tours complets de chaque tableau, dans l'ordre (jalons de copie automatique). */
+export function completedBracketRounds(state: EditionState): { bracket: BracketKey; round: number }[] {
+  return byRound(bracketMatches(state))
+    .filter(roundComplete)
+    .map(([m]) => ({ bracket: m.bracket, round: m.round }))
+}
+
+/**
+ * Lance des matchs, dans l'ordre donné : chacun prendra la plus petite planche
+ * libre, sinon la file d'attente. Un match déjà lancé, exempt ou sans ses deux
+ * équipes est ignoré. Sert aux tours synchronisés (et, ticket 14, à « Lancer
+ * les matchs prêts »).
+ */
+function launch(state: EditionState, matchIds: readonly string[]): EditionState {
+  const matches = new Map(bracketMatches(state).map((m) => [m.id, m]))
+  const entries = matchIds
+    .filter((id) => {
+      const m = matches.get(id)
+      return m !== undefined && !m.bye && m.teamA !== null && m.teamB !== null && !m.launched
+    })
+    .map((matchId): BoardLogEntry => ({ kind: 'launch', matchId }))
+  if (entries.length === 0) return state
+  return { ...state, brackets: { ...state.brackets, boardLog: [...state.brackets.boardLog, ...entries] } }
+}
+
+/** Tours synchronisés : les matchs pas encore lancés d'un tour dont le tour précédent est complet (le 1er tour d'emblée). */
+function synchronizedLaunches(state: EditionState): string[] {
+  const rounds = byRound(bracketMatches(state))
+  return rounds.flatMap((matches, i) => {
+    const [first] = matches
+    const previous = rounds[i - 1]
+    const ready = first.round === 1 || (previous !== undefined && previous[0].bracket === first.bracket && roundComplete(previous))
+    return ready ? matches.map((m) => m.id) : []
+  })
 }
 
 /** Planches des tableaux, rejouées : la plus petite libre, sinon la file d'attente. */
@@ -389,6 +461,8 @@ export interface BracketView {
   size: number
   byes: number
   rounds: BracketRoundView[]
+  /** Vainqueur de la finale ; `null` tant qu’elle n’est pas jouée. */
+  winner: BracketTeamRef | null
 }
 
 export interface SplitView {
@@ -439,16 +513,16 @@ export function bracketsView(state: EditionState): BracketsView {
   if (!grids) return { split, generated: false, brackets: [], live: [] }
 
   const boards = bracketBoards(state)
-  const views = bracketMatches(state).map((m): BracketMatchView => {
-    const score = m.bye ? null : validScore(state, m)
-    const board = boards.boardOf[m.id] ?? null
-    const matchesInRound = grids[m.bracket as 'P' | 'C'].length / 2 ** m.round
+  const matches = bracketMatches(state)
+  const views = matches.map((m): BracketMatchView => {
+    const { score } = m
+    const board = m.launched ? (boards.boardOf[m.id] ?? null) : null
     return {
       id: m.id,
       bracket: m.bracket,
       bracketName: BRACKET_NAMES[m.bracket],
       round: m.round,
-      roundName: roundName(matchesInRound),
+      roundName: roundName(m.roundSize),
       index: m.index,
       board: m.bye ? null : board,
       teamA: ref(m.teamA),
@@ -458,8 +532,8 @@ export function bracketsView(state: EditionState): BracketsView {
     }
   })
 
-  const brackets = (['P', 'C'] as const).map((key): BracketView => {
-    const grid = grids[key]
+  const final = new Map(matches.filter((m) => m.roundSize === 1).map((m) => [m.bracket, m]))
+  const brackets = bracketGrids(state).map(([key, grid]): BracketView => {
     const teams = grid.filter((s) => s !== null).length
     const rounds: BracketRoundView[] = []
     for (const m of views.filter((v) => v.bracket === key)) {
@@ -467,7 +541,8 @@ export function bracketsView(state: EditionState): BracketsView {
       if (!round) rounds.push((round = { round: m.round, name: m.roundName, matches: [] }))
       round.matches.push(m)
     }
-    return { key, name: BRACKET_NAMES[key], teams, size: grid.length, byes: grid.length - teams, rounds }
+    const winner = final.get(key)?.winner ?? null
+    return { key, name: BRACKET_NAMES[key], teams, size: grid.length, byes: grid.length - teams, rounds, winner: ref(winner) }
   })
 
   const queue = (id: string) => boards.waiting.indexOf(id)
