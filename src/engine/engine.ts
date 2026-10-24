@@ -1,3 +1,4 @@
+import { bracketLockProblem, decideBrackets, evolveBrackets, type BracketCommand, type BracketEvent } from './brackets.ts'
 import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } from './edition.ts'
 import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } from './checkin.ts'
 import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } from './forfeit.ts'
@@ -16,8 +17,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | BracketCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | BracketEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -25,7 +26,7 @@ export type EventType = Event['type']
 export function decide(state: EditionState, command: Command, ctx: Ctx): Decision<Event> {
   if (!command || typeof command !== 'object') return refuse('Commande illisible.')
   if (command.type !== 'createEdition' && !state.edition) return refuse("Cette édition n'existe pas.")
-  const locked = poolLockProblem(state, command)
+  const locked = poolLockProblem(state, command) ?? bracketLockProblem(state, command)
   if (locked) return refuse(locked)
   switch (command.type) {
     case 'createEdition':
@@ -46,6 +47,10 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'declareForfeit':
     case 'cancelForfeit':
       return decideForfeit(state, command, ctx)
+    case 'validateSplit':
+    case 'generateBrackets':
+    case 'enterBracketScore':
+      return decideBrackets(state, command, ctx)
     default:
       return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
   }
@@ -71,6 +76,10 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'forfeitDeclared':
     case 'forfeitCancelled':
       return evolveForfeit(state, event)
+    case 'splitValidated':
+    case 'bracketsGenerated':
+    case 'bracketScoreEntered':
+      return evolveBrackets(state, event)
     default: {
       const unknown: never = event
       throw new Error(`Événement inconnu : ${(unknown as { type: string }).type}`)

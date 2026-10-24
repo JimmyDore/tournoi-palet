@@ -1,3 +1,4 @@
+import { initialBrackets, type BracketsState } from './brackets.ts'
 import type { EditionSettings } from './settings.ts'
 import type { Forfeit } from './forfeit.ts'
 import type { PoolState } from './pool.ts'
@@ -37,10 +38,12 @@ export interface EditionState {
   pool: PoolState
   /** Équipes déclarées forfait (poule ou tableau), par id. */
   forfeits: Record<string, Forfeit>
+  /** Répartition validée, grilles du 1er tour et scores des tableaux. */
+  brackets: BracketsState
 }
 
 export function initialState(): EditionState {
-  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {} }
+  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {}, brackets: initialBrackets() }
 }
 
 /** Pour les vues et les commandes qui exigent une édition créée. */

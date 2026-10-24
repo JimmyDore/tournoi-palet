@@ -1,4 +1,5 @@
 import type { EditionSettings } from './settings.ts'
+import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
 import { poolView, type PoolStanding, type PoolView } from './pool.ts'
@@ -40,6 +41,8 @@ export interface PublicView {
   placesLeft: number
   /** Parties, planches, scores et classement des poules (noms d'équipe seulement). */
   pool: PoolView
+  /** Répartition, tableaux, et matchs de tableau en cours (`brackets.live`) pour la télé. */
+  brackets: BracketsView
 }
 
 export interface PublicTeam {
@@ -78,6 +81,7 @@ export function publicView(state: EditionState): PublicView {
     waitlist: waitlist.map(named),
     placesLeft,
     pool: poolView(state),
+    brackets: bracketsView(state),
   }
 }
 
@@ -112,6 +116,7 @@ export interface AdminView {
   waitlistCount: number
   placesLeft: number
   pool: PoolView
+  brackets: BracketsView
 }
 
 export function adminView(state: EditionState): AdminView {
@@ -140,6 +145,7 @@ export function adminView(state: EditionState): AdminView {
     waitlistCount: waitlist.length,
     placesLeft,
     pool: poolView(state),
+    brackets: bracketsView(state),
   }
 }
 
@@ -155,13 +161,14 @@ export interface ExportView {
   teams: AdminTeam[]
   pool: PoolView
   poolStandings: PoolStanding[]
+  brackets: BracketsView
   // Ticket 13 : ajouter le classement final quand il existera.
   milestones: string[]
 }
 
 export function exportView(state: EditionState): ExportView {
-  const { id, settings, createdAt, phase, teams, pool } = adminView(state)
-  return { id, settings, createdAt, phase, teams, pool, poolStandings: pool.standings, milestones: milestones(state) }
+  const { id, settings, createdAt, phase, teams, pool, brackets } = adminView(state)
+  return { id, settings, createdAt, phase, teams, pool, poolStandings: pool.standings, brackets, milestones: milestones(state) }
 }
 
 /** Ligne de la liste des éditions (console, choix de l'édition en cours). */
