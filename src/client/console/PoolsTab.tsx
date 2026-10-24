@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { POOL_ROUNDS, type PoolMatchView, type PoolRoundView, type PoolStanding, type PoolTeamRef } from '../../engine/index.ts'
+import { POOL_ROUNDS, type PoolMatchView, type Score, type PoolRoundView, type PoolStanding, type PoolTeamRef } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import type { TabProps } from './tabs.tsx'
+
+/** Ce qu'il faut d'un match pour l'afficher et saisir son score (poule ou tableau). */
+export interface ScorableMatch {
+  id: string
+  board: number | null
+  teamA: { name: string }
+  teamB: { name: string }
+  score: Score | null
+  forfeit?: string | null
+}
 
 /** Texte saisi → nombre ; le moteur refuse ce qui n'est pas un entier de 0 à 13. */
 const parseScore = (text: string): number | null => (text.trim() === '' ? null : Number(text.trim().replace(',', '.')))
@@ -102,7 +112,8 @@ export function PoolsTab({ view }: TabProps) {
             </button>
           )}
           {current?.complete && nextRound > POOL_ROUNDS && <p className="success">Les {POOL_ROUNDS} parties de poule sont terminées.</p>}
-          {current && (
+          {current?.complete && nextRound > POOL_ROUNDS && view.brackets.generated && <p className="muted">Les tableaux sont générés : les poules sont closes.</p>}
+          {current && !view.brackets.generated && (
             <button type="button" className="btn btn-danger-outline" onClick={() => void askRemove(current.round)}>
               Retirer la partie {current.round}
             </button>
@@ -252,18 +263,18 @@ function RoundSummary({ round }: { round: PoolRoundView }) {
   )
 }
 
-function MatchList({
+export function MatchList<M extends ScorableMatch>({
   matches,
   editing,
   onEdit,
   onCancel,
   onSave,
 }: {
-  matches: PoolMatchView[]
+  matches: M[]
   editing: string | null
   onEdit: (id: string) => void
   onCancel: () => void
-  onSave: (match: PoolMatchView, a: number | null, b: number | null) => Promise<string | null>
+  onSave: (match: M, a: number | null, b: number | null) => Promise<string | null>
 }) {
   return (
     <ul className="pool-matches">
@@ -293,14 +304,14 @@ function MatchList({
   )
 }
 
-function ScoreEditor({
+function ScoreEditor<M extends ScorableMatch>({
   match,
   onCancel,
   onSave,
 }: {
-  match: PoolMatchView
+  match: M
   onCancel: () => void
-  onSave: (match: PoolMatchView, a: number | null, b: number | null) => Promise<string | null>
+  onSave: (match: M, a: number | null, b: number | null) => Promise<string | null>
 }) {
   const [a, setA] = useState(match.score ? String(match.score.a) : '')
   const [b, setB] = useState(match.score ? String(match.score.b) : '')
