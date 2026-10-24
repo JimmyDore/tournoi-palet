@@ -33,7 +33,13 @@ export function EditionConsole({ id, tab }: { id: string; tab?: string }) {
         <h1>
           {view.settings.name} {view.settings.isTest && <span className="badge badge-test">test</span>}
         </h1>
-        <p className="muted">{formatDate(view.settings.date)}</p>
+        <div className="edition-meta">
+          <p className="muted">{formatDate(view.settings.date)}</p>
+          {/* Fichier JSON lisible de toute l'édition : la session (cookie) suffit, c'est un simple lien. */}
+          <a className="btn btn-small" href={`/api/admin/editions/${encodeURIComponent(id)}/export`} download>
+            Exporter l'édition
+          </a>
+        </div>
         {status === 'offline' && <p className="offline-banner">Connexion perdue, reconnexion…</p>}
       </div>
       <nav className="tabs" aria-label="Onglets de l'édition">

@@ -1,6 +1,7 @@
 import type { EditionSettings } from './settings.ts'
 import { participants } from './checkin.ts'
-import { poolView, type PoolView } from './pool.ts'
+import { milestones } from './milestones.ts'
+import { poolView, type PoolStanding, type PoolView } from './pool.ts'
 import { requireEdition, type EditionState } from './state.ts'
 import type { TvState } from './tv.ts'
 import { teamName, teamStatuses, teamWarnings, type TeamFields, type TeamStatus } from './teams.ts'
@@ -146,6 +147,27 @@ export function adminView(state: EditionState): AdminView {
     pool: poolView(state),
     tv: state.tv,
   }
+}
+
+/**
+ * Contenu calculé du fichier d'export (console) : réglages, fiches complètes
+ * et vues calculées. Le serveur y ajoute les événements, seuls faits stockés.
+ */
+export interface ExportView {
+  id: string
+  settings: EditionSettings
+  createdAt: number
+  phase: Phase
+  teams: AdminTeam[]
+  pool: PoolView
+  poolStandings: PoolStanding[]
+  // Ticket 13 : ajouter le classement final quand il existera.
+  milestones: string[]
+}
+
+export function exportView(state: EditionState): ExportView {
+  const { id, settings, createdAt, phase, teams, pool } = adminView(state)
+  return { id, settings, createdAt, phase, teams, pool, poolStandings: pool.standings, milestones: milestones(state) }
 }
 
 /** Ligne de la liste des éditions (console, choix de l'édition en cours). */

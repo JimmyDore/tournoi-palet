@@ -66,10 +66,37 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       if (!match) return { label: `Score saisi (${event.matchId}) : ${event.scoreA}-${event.scoreB}` }
       const where = `partie ${match.round}${match.board ? `, planche ${match.board}` : ''}`
       const line = (a: number, b: number) => `« ${match.teamA.name} » ${a}-${b} « ${match.teamB.name} »`
-      const previous = before.pool.scores[event.matchId]
-      if (!previous) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}` }
-      return { label: `Score corrigé (${where})`, before: line(previous.a, previous.b), after: line(event.scoreA, event.scoreB) }
+      const previous = poolView(before)
+        .rounds.flatMap((r) => r.matches)
+        .find((m) => m.id === event.matchId)
+      if (!previous?.score) return { label: `Score saisi (${where}) : ${line(event.scoreA, event.scoreB)}` }
+      const was = line(previous.score.a, previous.score.b) + (previous.forfeit ? ' (forfait)' : '')
+      return { label: `Score corrigé (${where})`, before: was, after: line(event.scoreA, event.scoreB) }
     }
+    case 'poolRoundRemoved': {
+      const round = poolView(before).rounds.find((r) => r.round === event.round)
+      if (!round) return { label: `Partie ${event.round} retirée` }
+      const entered = round.matches.filter((m) => m.score && !m.forfeit).length
+      const scores = entered === 0 ? 'aucun score saisi' : `${entered} score${entered > 1 ? 's' : ''} saisi${entered > 1 ? 's' : ''}`
+      return {
+        label: `Partie ${event.round} retirée : tirage et scores effacés`,
+        before: `${round.matches.length} match${round.matches.length > 1 ? 's' : ''}, ${scores}${round.bye ? `, « ${round.bye.team.name} » exempte` : ''}`,
+        after: 'partie à relancer',
+      }
+    }
+    case 'forfeitDeclared': {
+      const name = nameIn(before, event.teamId)
+      const won = poolView(after)
+        .rounds.flatMap((r) => r.matches)
+        .filter((m) => m.forfeit === event.teamId && !before.pool.finishOrder.includes(m.id))
+        .map((m) => `« ${m.teamA.id === event.teamId ? m.teamB.name : m.teamA.name} »`)
+      const parts = [`Équipe « ${name} » déclarée forfait`]
+      if (won.length) parts.push(`${won.join(', ')} ${won.length > 1 ? 'gagnent' : 'gagne'} 13-0`)
+      parts.push('elle ne sera plus tirée')
+      return { label: parts.join(' ; ') }
+    }
+    case 'forfeitCancelled':
+      return { label: `Forfait de « ${nameIn(before, event.teamId)} » annulé` }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
   }

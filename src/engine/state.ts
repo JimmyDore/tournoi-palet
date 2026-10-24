@@ -1,4 +1,5 @@
 import type { EditionSettings } from './settings.ts'
+import type { Forfeit } from './forfeit.ts'
 import type { PoolState } from './pool.ts'
 import type { TeamFields } from './teams.ts'
 import { initialTv, type TvState } from './tv.ts'
@@ -35,12 +36,14 @@ export interface EditionState {
   nextTeamNumber: number
   /** Parties de poule tirées et scores saisis. */
   pool: PoolState
+  /** Équipes déclarées forfait (poule ou tableau), par id. */
+  forfeits: Record<string, Forfeit>
   /** Vue imposée à la télé par la console. */
   tv: TvState
 }
 
 export function initialState(): EditionState {
-  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, tv: initialTv() }
+  return { edition: null, teams: [], nextTeamNumber: 1, pool: { rounds: [], scores: {}, finishOrder: [] }, forfeits: {}, tv: initialTv() }
 }
 
 /** Pour les vues et les commandes qui exigent une édition créée. */

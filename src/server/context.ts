@@ -1,6 +1,7 @@
 import { getRandomValues } from 'node:crypto'
 import type { Command, Ctx, EditionInfo, EditionSettings, EditionState, Rng } from '../engine/index.ts'
 import type { Auth } from './auth.ts'
+import type { Backups } from './backups.ts'
 import type { Applied, EditionStore } from './editions.ts'
 import type { Hub } from './hub.ts'
 
@@ -23,16 +24,22 @@ export interface ServerContext {
   create(settings: Partial<EditionSettings>): Applied
 }
 
-export function createServerContext(store: EditionStore, hub: Hub, auth: Auth): ServerContext {
-  const after = (result: Applied) => {
-    if (result.ok && result.events.length > 0) hub.broadcast(result.editionId, result.state)
+export function createServerContext(store: EditionStore, hub: Hub, auth: Auth, backups?: Backups): ServerContext {
+  const after = (result: Applied, before?: EditionState) => {
+    if (result.ok && result.events.length > 0) {
+      hub.broadcast(result.editionId, result.state)
+      backups?.afterCommand(result.editionId, before, result.state)
+    }
     return result
   }
   return {
     store,
     hub,
     auth,
-    execute: (editionId, command) => after(store.apply(editionId, command, serverCtx())),
+    execute: (editionId, command) => {
+      const before = store.get(editionId)
+      return after(store.apply(editionId, command, serverCtx()), before)
+    },
     create: (settings) => after(store.create(settings, serverCtx())),
   }
 }

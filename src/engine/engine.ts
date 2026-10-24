@@ -1,5 +1,6 @@
 import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } from './edition.ts'
 import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } from './checkin.ts'
+import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } from './forfeit.ts'
 import { decidePool, evolvePool, poolLockProblem, type PoolCommand, type PoolEvent } from './pool.ts'
 import { decideTeams, evolveTeams, type TeamCommand, type TeamEvent } from './teams.ts'
 import { decideTv, evolveTv, type TvCommand, type TvEvent } from './tv.ts'
@@ -16,8 +17,8 @@ import { refuse, type Ctx, type Decision } from './types.ts'
  *   4. sa tranche d'état dans `state.ts`, ses vues dans `views.ts`, ses
  *      libellés de journal dans `describe.ts`.
  */
-export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | TvCommand
-export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | TvEvent
+export type Command = EditionCommand | TeamCommand | CheckInCommand | PoolCommand | ForfeitCommand | TvCommand
+export type Event = EditionEvent | TeamEvent | CheckInEvent | PoolEvent | ForfeitEvent | TvEvent
 
 export type CommandType = Command['type']
 export type EventType = Event['type']
@@ -41,7 +42,11 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
       return decideCheckIn(state, command, ctx)
     case 'drawPoolRound':
     case 'enterPoolScore':
+    case 'removePoolRound':
       return decidePool(state, command, ctx)
+    case 'declareForfeit':
+    case 'cancelForfeit':
+      return decideForfeit(state, command, ctx)
     case 'setTvView':
       return decideTv(state, command, ctx)
     default:
@@ -64,7 +69,11 @@ export function evolve(state: EditionState, event: Event): EditionState {
       return evolveCheckIn(state, event)
     case 'poolRoundDrawn':
     case 'poolScoreEntered':
+    case 'poolRoundRemoved':
       return evolvePool(state, event)
+    case 'forfeitDeclared':
+    case 'forfeitCancelled':
+      return evolveForfeit(state, event)
     case 'tvViewSet':
       return evolveTv(state, event)
     default: {

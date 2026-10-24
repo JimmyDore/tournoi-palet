@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
-import { adminView, type Command, type EditionSettings } from '../engine/index.ts'
+import { adminView, exportView, type Command, type EditionSettings } from '../engine/index.ts'
 import type { Applied } from './editions.ts'
 import type { ServerContext } from './context.ts'
 
@@ -46,6 +46,20 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): v
     return answer(reply, ctx.execute(req.params.id, command))
   })
 
+  // Fichier lisible (JSON indenté) : vues calculées et événements, à garder hors du serveur.
+  app.get<{ Params: { id: string } }>('/api/admin/editions/:id/export', async (req, reply) => {
+    const state = store.get(req.params.id)
+    const events = store.events(req.params.id)
+    if (!state || !events) return reply.code(404).send(NOT_FOUND)
+    const content = { format: 'tournoi-palet-export', version: 1, exportedAt: new Date().toISOString(), ...exportView(state), events }
+    const { name, date } = content.settings
+    return reply
+      .header('content-type', 'application/json; charset=utf-8')
+      .header('content-disposition', `attachment; filename="tournoi-palet-${slug(name)}-${date}.json"`)
+      .header('cache-control', 'no-store')
+      .send(`${JSON.stringify(content, null, 2)}\n`)
+  })
+
   app.get<{ Params: { id: string } }>('/api/admin/editions/:id/journal', async (req, reply) => {
     return store.journal(req.params.id) ?? reply.code(404).send(NOT_FOUND)
   })
@@ -54,4 +68,16 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): v
 function answer(reply: FastifyReply, result: Applied) {
   if (!result.ok) return reply.code(result.notFound ? 404 : 400).send({ ok: false, reason: result.reason })
   return { ok: true, id: result.editionId, view: adminView(result.state) }
+}
+
+/** Nom de fichier sûr : minuscules sans accents, chiffres et tirets. */
+function slug(text: string): string {
+  return (
+    text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'edition'
+  )
 }

@@ -50,6 +50,11 @@ export class EditionStore {
     return this.editions.get(editionId)?.state
   }
 
+  /** Les événements d'une édition, dans l'ordre (les faits stockés). */
+  events(editionId: string): readonly Event[] | undefined {
+    return this.editions.get(editionId)?.events
+  }
+
   /** Toutes les éditions, la plus récente (par date) en tête. */
   list(): EditionSummary[] {
     return [...this.editions.values()]

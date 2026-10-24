@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import fastifyWebsocket from '@fastify/websocket'
 import { createAuth } from './auth.ts'
+import { createBackups } from './backups.ts'
 import { createServerContext } from './context.ts'
 import { checkDatabase, openDatabase } from './db.ts'
 import { EditionStore } from './editions.ts'
@@ -34,7 +35,8 @@ export async function buildApp({ dataDir, staticDir, logger = false, adminPasswo
   // Rejoue tous les événements de SQLite : l'état est en mémoire dès le démarrage.
   const store = new EditionStore(db)
   const password = adminPassword ?? (process.env.ADMIN_PASSWORD?.trim() || DEFAULT_ADMIN_PASSWORD)
-  const ctx = createServerContext(store, new Hub(), createAuth(password))
+  const backups = createBackups(db, dataDir, (err, message) => app.log.error({ err }, message))
+  const ctx = createServerContext(store, new Hub(), createAuth(password), backups)
 
   await app.register(fastifyWebsocket)
   registerWebSocket(app, ctx)
