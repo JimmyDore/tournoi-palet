@@ -96,7 +96,7 @@ describe('correction qui change le vainqueur', () => {
     score(t, 'P:3:0', 13, 10)
     const final = match(t, 'P:3:0')
     expect(t.refusal({ type: 'enterBracketScore', matchId: 'P:3:0', scoreA: 10, scoreB: 13 })).toBe(
-      `Le vainqueur change : « ${name(final, 'B')} » au lieu de « ${name(final, 'A')} ». Aucun autre match n’est touché. Confirmez pour corriger.`,
+      `Le vainqueur change : « ${name(final, 'B')} » au lieu de « ${name(final, 'A')} ».\nAucun autre match n’est touché.\nConfirmez pour corriger.`,
     )
     score(t, 'P:3:0', 10, 13, true)
     expect(bracketsView(t.state).brackets[0].winner!.id).toBe(final.teamB!.id)

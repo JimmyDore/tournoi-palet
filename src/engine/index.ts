@@ -14,7 +14,7 @@ export type { NextMatch, PoolMatchStatus, PoolMatchView, PoolRoundView, PoolStan
 export { POOL_ROUNDS, nextMatchOf, poolStandings, poolView } from './pool.ts'
 export type { BracketScoreEntered, BracketsGenerated, EnterBracketScore, GenerateBrackets, SplitValidated, ValidateSplit } from './brackets.ts'
 export type { BracketKey, BracketMatchStatus, BracketMatchView, BracketRoundView, BracketTeamRef, BracketView, BracketsView, Slot, SplitView } from './brackets.ts'
-export { BRACKET_NAMES, bracketSize, bracketsView, correctionImpact, ofBracket, proposedPrincipal, roundName, seedOrder } from './brackets.ts'
+export { BRACKET_NAMES, IMPACT_END, bracketSize, bracketsView, correctionImpact, ofBracket, proposedPrincipal, roundName, seedOrder } from './brackets.ts'
 export type { CorrectionImpact, LaunchReadyMatches, ReadyMatchesLaunched } from './brackets.ts'
 export { scoreProblem } from './score.ts'
 export type { Score } from './score.ts'

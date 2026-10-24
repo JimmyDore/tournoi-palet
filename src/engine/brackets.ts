@@ -596,6 +596,8 @@ export interface BracketsView {
   live: BracketMatchView[]
   /** Matchs pas encore lancés dont les deux équipes sont connues (« Lancer les matchs prêts »). */
   ready: number
+  /** Équipes déclarées forfait une fois les tableaux générés. */
+  forfeits: BracketTeamRef[]
 }
 
 export function bracketsView(state: EditionState): BracketsView {
@@ -621,7 +623,7 @@ export function bracketsView(state: EditionState): BracketsView {
   }
 
   const grids = state.brackets.grids
-  if (!grids) return { split, generated: false, brackets: [], live: [], ready: 0 }
+  if (!grids) return { split, generated: false, brackets: [], live: [], ready: 0, forfeits: [] }
 
   const boards = bracketBoards(state)
   const matches = bracketMatches(state)
@@ -663,7 +665,10 @@ export function bracketsView(state: EditionState): BracketsView {
     .filter((m) => m.status === 'playing' || m.status === 'waiting-board')
     .sort((x, y) => (x.board ?? Infinity) - (y.board ?? Infinity) || queue(x.id) - queue(y.id))
 
-  return { split, generated: true, brackets, live, ready: readyMatches(state).length }
+  const forfeits = Object.entries(state.forfeits)
+    .filter(([, f]) => f.inBrackets)
+    .map(([teamId]) => ref(teamId)!)
+  return { split, generated: true, brackets, live, ready: readyMatches(state).length, forfeits }
 }
 
 // --- Impact d'une correction -----------------------------------------------
@@ -724,14 +729,21 @@ export function correctionImpact(state: EditionState, matchId: string, scoreA: n
   return { winnerChanged: true, changes }
 }
 
-/** Raison du refus d'une correction qui change le vainqueur sans confirmation ; `null` si le vainqueur ne change pas. */
+/**
+ * Raison du refus d'une correction qui change le vainqueur sans confirmation ;
+ * `null` si le vainqueur ne change pas. Une phrase par ligne : la console en
+ * fait une liste.
+ */
 function impactWarning(state: EditionState, match: DerivedMatch, scoreA: number, scoreB: number): string | null {
   const impact = correctionImpact(state, match.id, scoreA, scoreB)
   if (!impact.winnerChanged) return null
   const [winner, loser] = scoreA > scoreB ? [match.teamA!, match.teamB!] : [match.teamB!, match.teamA!]
-  const what = impact.changes.length ? impact.changes.map((c) => `${c}.`).join(' ') : 'Aucun autre match n’est touché.'
-  return `Le vainqueur change : « ${nameOf(state, winner)} » au lieu de « ${nameOf(state, loser)} ». ${what} Confirmez pour corriger.`
+  const what = impact.changes.length ? impact.changes.map((c) => `${c}.`) : ['Aucun autre match n’est touché.']
+  return [`Le vainqueur change : « ${nameOf(state, winner)} » au lieu de « ${nameOf(state, loser)} ».`, ...what, IMPACT_END].join('\n')
 }
+
+/** Dernière ligne de la raison d'un refus de correction. */
+export const IMPACT_END = 'Confirmez pour corriger.'
 
 function nameOf(state: EditionState, teamId: string): string {
   const team = state.teams.find((t) => t.id === teamId)
