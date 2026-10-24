@@ -24,8 +24,8 @@ function bracketsReady(count: number, settings = {}): Harness {
   return t.apply({ type: 'generateBrackets' })
 }
 
-const bracket = (t: Harness, key: 'P' | 'C') => bracketsView(t.state).brackets.find((b) => b.key === key)!
-const round = (t: Harness, key: 'P' | 'C', n: number) => bracket(t, key).rounds[n - 1].matches
+const bracket = (t: Harness, key: 'P' | 'C' | 'CP') => bracketsView(t.state).brackets.find((b) => b.key === key)!
+const round = (t: Harness, key: 'P' | 'C' | 'CP', n: number) => bracket(t, key).rounds[n - 1].matches
 /** Fait gagner l'équipe A (13-5) ou B (4-13). */
 const win = (t: Harness, m: BracketMatchView, side: 'A' | 'B' = 'A') =>
   t.apply({ type: 'enterBracketScore', matchId: m.id, scoreA: side === 'A' ? 13 : 4, scoreB: side === 'A' ? 5 : 13 })
