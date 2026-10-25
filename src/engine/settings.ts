@@ -12,6 +12,8 @@ export interface EditionSettings {
   venue: string
   /** Tarif par équipe, en euros. */
   price: number
+  /** Caution d'un jeu de palets prêté, en euros. */
+  deposit: number
   contact: string
   /** Nombre de planches disponibles. */
   boards: number
@@ -50,6 +52,7 @@ export const DEFAULT_SETTINGS: Omit<EditionSettings, 'name' | 'date'> = {
   startTime: '14:00',
   venue: 'Salle Arc-en-Ciel, Chantonnay',
   price: 18,
+  deposit: 2,
   contact: '',
   boards: 24,
   maxTeams: 48,
@@ -68,6 +71,7 @@ export const SETTING_KEYS = [
   'startTime',
   'venue',
   'price',
+  'deposit',
   'contact',
   'boards',
   'maxTeams',
@@ -86,6 +90,7 @@ export const SETTING_LABELS: Record<keyof EditionSettings, string> = {
   startTime: 'Début',
   venue: 'Lieu',
   price: 'Tarif',
+  deposit: 'Caution des palets',
   contact: 'Contact',
   boards: 'Planches',
   maxTeams: "Plafond d'équipes",
@@ -100,6 +105,7 @@ export const SETTING_LABELS: Record<keyof EditionSettings, string> = {
 export function formatSetting<K extends keyof EditionSettings>(key: K, value: EditionSettings[K]): string {
   switch (key) {
     case 'price':
+    case 'deposit':
       return `${value} €`
     case 'gameMinutes':
       return `${value} min`
@@ -141,6 +147,7 @@ export function settingsProblem(s: EditionSettings): string | null {
   }
   if (typeof s.venue !== 'string' || typeof s.contact !== 'string') return 'Le lieu et le contact doivent être du texte.'
   if (typeof s.price !== 'number' || !Number.isFinite(s.price) || s.price < 0) return 'Le tarif doit être un montant positif ou nul.'
+  if (typeof s.deposit !== 'number' || !Number.isFinite(s.deposit) || s.deposit < 0) return 'La caution des palets doit être un montant positif ou nul.'
   if (!isInteger(s.boards) || s.boards < 1) return 'Il faut au moins une planche.'
   if (!isInteger(s.maxTeams) || s.maxTeams < 2) return "Le plafond d'équipes doit être d'au moins 2."
   if (s.maxTeams > MAX_TEAMS_LIMIT) return `Le plafond d'équipes ne peut pas dépasser ${MAX_TEAMS_LIMIT}.`

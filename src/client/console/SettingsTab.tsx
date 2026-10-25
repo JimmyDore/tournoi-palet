@@ -23,6 +23,7 @@ function toForm(s: EditionSettings): Form {
     startTime: s.startTime,
     venue: s.venue,
     price: String(s.price),
+    deposit: String(s.deposit),
     contact: s.contact,
     boards: String(s.boards),
     maxTeams: String(s.maxTeams),
@@ -46,6 +47,7 @@ function toSettings(f: Form): EditionSettings {
     startTime: f.startTime,
     venue: f.venue,
     price: num(f.price),
+    deposit: num(f.deposit),
     contact: f.contact,
     boards: num(f.boards),
     maxTeams: num(f.maxTeams),
@@ -99,7 +101,7 @@ export function SettingsTab({ view }: TabProps) {
       <input value={form[key]} placeholder={placeholder} onChange={(e) => set(key, e.target.value)} />
     </label>
   )
-  const number = (key: 'price' | 'boards' | 'maxTeams' | 'gameMinutes' | 'byeWinner' | 'byeLoser', label: string, attrs: object = {}) => (
+  const number = (key: 'price' | 'deposit' | 'boards' | 'maxTeams' | 'gameMinutes' | 'byeWinner' | 'byeLoser', label: string, attrs: object = {}) => (
     <label className="field">
       <span>{label}</span>
       <input type="number" inputMode="decimal" value={form[key]} onChange={(e) => set(key, e.target.value)} {...attrs} />
@@ -127,6 +129,7 @@ export function SettingsTab({ view }: TabProps) {
         </label>
         {text('venue', 'Lieu')}
         {number('price', 'Tarif par doublette (€)', { min: 0, step: '0.5' })}
+        {number('deposit', 'Caution des palets prêtés (€)', { min: 0, step: '0.5' })}
         {text('contact', 'Contact (inscriptions)', 'Jean, 06 …')}
       </div>
 

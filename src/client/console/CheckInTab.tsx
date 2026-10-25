@@ -22,11 +22,14 @@ function matches(team: AdminTeam, query: string): boolean {
     .every((word) => haystack.includes(word))
 }
 
+type PaletsAction = 'lendPalets' | 'cancelPaletsLoan' | 'returnPalets' | 'cancelPaletsReturn'
+
 const hourFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' })
 
 /**
  * Onglet « Pointage » du jour J : une équipe passe à la table, on la cherche
- * et on coche « payé » (présente et payée en une action).
+ * et on coche « payé » (présente et payée en une action). Une seconde case
+ * note les palets prêtés contre caution, rendus en fin de journée.
  */
 export function CheckInTab({ view }: TabProps) {
   const [query, setQuery] = useState('')
@@ -34,16 +37,19 @@ export function CheckInTab({ view }: TabProps) {
   const [refusal, setRefusal] = useRefusal(view)
   const [message, setMessage] = useState<string | null>(null)
   const [replacing, setReplacing] = useState<AdminTeam | null>(null)
+  const [showOut, setShowOut] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => searchRef.current?.focus(), [])
 
   const price = formatPrice(view.settings.price)
+  const deposit = formatPrice(view.settings.deposit)
   const registered = view.teams.filter((t) => t.status === 'registered')
   const missing = registered.filter((t) => t.checkedInAt === null)
   const checkedIn = registered.filter((t) => t.checkedInAt !== null)
   const waitlist = view.teams.filter((t) => t.status === 'waitlist')
   const results = query.trim() ? view.teams.filter((t) => matches(t, query)) : []
+  const paletsOut = view.teams.filter((t) => t.paletsLentAt !== null && t.paletsReturnedAt === null)
 
   const toggle = async (team: AdminTeam) => {
     setBusy(team.id)
@@ -58,6 +64,25 @@ export function CheckInTab({ view }: TabProps) {
     setMessage(undo ? `Pointage de « ${team.name} » annulé.` : `« ${team.name} » est pointée : présente, ${price} payés.`)
     if (!undo) setQuery('')
     searchRef.current?.focus()
+  }
+
+  const palets = async (team: AdminTeam, type: PaletsAction) => {
+    setBusy(team.id)
+    const result = await sendCommand(view.id, { type, teamId: team.id })
+    setBusy(null)
+    if (!result.ok) {
+      setMessage(null)
+      return setRefusal(result.reason)
+    }
+    setRefusal(null)
+    setMessage(
+      {
+        lendPalets: `Palets prêtés à « ${team.name} » : ${deposit} de caution.`,
+        cancelPaletsLoan: `Prêt de palets à « ${team.name} » annulé.`,
+        returnPalets: `« ${team.name} » a rendu ses palets : ${deposit} à lui rendre.`,
+        cancelPaletsReturn: `Rendu des palets de « ${team.name} » annulé.`,
+      }[type],
+    )
   }
 
   // Entrée : pointe l'équipe si la recherche n'en trouve qu'une.
@@ -95,7 +120,16 @@ export function CheckInTab({ view }: TabProps) {
   }
 
   const row = (team: AdminTeam) => (
-    <CheckInRow key={team.id} team={team} price={price} busy={busy === team.id} onToggle={toggle} onReplace={waitlist.length > 0 ? setReplacing : undefined} />
+    <CheckInRow
+      key={team.id}
+      team={team}
+      price={price}
+      deposit={deposit}
+      busy={busy === team.id}
+      onToggle={toggle}
+      onPalets={palets}
+      onReplace={waitlist.length > 0 ? setReplacing : undefined}
+    />
   )
 
   return (
@@ -143,6 +177,27 @@ export function CheckInTab({ view }: TabProps) {
             <ul className="team-list">{results.map(row)}</ul>
           </>
         )}
+      </section>
+
+      <section className="panel">
+        <h2>Palets prêtés</h2>
+        <p className="checkin-count" role="status">
+          <strong>{view.palets.out}</strong> à rendre
+          <span className="muted">
+            {' '}
+            · {view.palets.lent} {view.palets.lent > 1 ? 'jeux prêtés' : 'jeu prêté'} · {view.palets.returned} {view.palets.returned > 1 ? 'rendus' : 'rendu'} ·{' '}
+            <span className="nowrap">{deposit} de caution</span>
+          </span>
+        </p>
+        <p className="muted small">Cochez « palets » quand une équipe emprunte un jeu ; en fin de journée, « Rendu » quand elle le rapporte.</p>
+        {paletsOut.length > 0 && (
+          <div className="actions">
+            <button type="button" className="btn" aria-expanded={showOut} onClick={() => setShowOut(!showOut)}>
+              {showOut ? 'Masquer les palets à rendre' : `Voir les palets à rendre (${paletsOut.length})`}
+            </button>
+          </div>
+        )}
+        {showOut && paletsOut.length > 0 && <ul className="team-list">{paletsOut.map(row)}</ul>}
       </section>
 
       <section className="panel">
@@ -211,14 +266,18 @@ function TeamLabel({ team, showWaitlist = true }: { team: AdminTeam; showWaitlis
 function CheckInRow({
   team,
   price,
+  deposit,
   busy,
   onToggle,
+  onPalets,
   onReplace,
 }: {
   team: AdminTeam
   price: string
+  deposit: string
   busy: boolean
   onToggle: (team: AdminTeam) => void
+  onPalets: (team: AdminTeam, type: PaletsAction) => void
   onReplace?: (team: AdminTeam) => void
 }) {
   const checked = team.checkedInAt !== null
@@ -231,6 +290,7 @@ function CheckInRow({
       <TeamLabel team={team} />
       <div className="team-actions">
         {checked && <span className="muted small">pointée à {hourFormat.format(team.checkedInAt!)}</span>}
+        {team.status === 'registered' && <PaletsControl team={team} deposit={deposit} busy={busy} onPalets={onPalets} />}
         {!checked && team.status === 'registered' && onReplace && (
           <button type="button" className="btn btn-small btn-danger-outline" onClick={() => onReplace(team)} aria-label={`${team.name} absente : remplacer`}>
             Absente : remplacer
@@ -238,5 +298,49 @@ function CheckInRow({
         )}
       </div>
     </li>
+  )
+}
+
+/** Palets prêtés : case à cocher (prêt ou annulation), puis « Rendu » en fin de journée. */
+function PaletsControl({
+  team,
+  deposit,
+  busy,
+  onPalets,
+}: {
+  team: AdminTeam
+  deposit: string
+  busy: boolean
+  onPalets: (team: AdminTeam, type: PaletsAction) => void
+}) {
+  const lent = team.paletsLentAt !== null
+  if (team.paletsReturnedAt !== null) {
+    return (
+      <span className="palets-control">
+        <span className="muted small">palets rendus à {hourFormat.format(team.paletsReturnedAt)}</span>
+        <button type="button" className="btn btn-small" disabled={busy} onClick={() => onPalets(team, 'cancelPaletsReturn')} aria-label={`${team.name} : annuler le rendu des palets`}>
+          Annuler le rendu
+        </button>
+      </span>
+    )
+  }
+  return (
+    <span className="palets-control">
+      <label className="checkin-box palets-box">
+        <input
+          type="checkbox"
+          checked={lent}
+          disabled={busy}
+          onChange={() => onPalets(team, lent ? 'cancelPaletsLoan' : 'lendPalets')}
+          aria-label={`${team.name} : palets prêtés (${deposit} de caution)`}
+        />
+        <span>palets ({deposit})</span>
+      </label>
+      {lent && (
+        <button type="button" className="btn btn-small btn-primary" disabled={busy} onClick={() => onPalets(team, 'returnPalets')} aria-label={`${team.name} : palets rendus`}>
+          Rendu
+        </button>
+      )}
+    </span>
   )
 }

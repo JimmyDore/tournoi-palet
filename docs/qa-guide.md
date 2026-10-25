@@ -54,6 +54,8 @@ Coche chaque case quand le résultat attendu est bien là. En cas d'écart, note
 - [ ] **Remplacer un absent.** Sur une inscrite non pointée, « Absente : remplacer » (confirmation). → Elle sort, la tête de la liste d'attente prend sa place.
 - [ ] **Dépointer.** Décoche une équipe pointée. → Dépointée en un clic, sans confirmation.
 - [ ] **Remonter le plafond.** Remets le plafond à 48.
+- [ ] **Palets prêtés (ticket 19).** Coche « palets (2 €) » sur deux équipes. → Le compteur « Palets prêtés » passe à 2 à rendre ; le journal note le prêt.
+- [ ] **Rendu.** « Voir les palets à rendre », puis « Rendu » sur l'une. → 1 à rendre, 1 rendu, l'heure du rendu s'affiche ; « Annuler le rendu » la remet à rendre. Rien de tout ça n'apparaît à la télé ni sur le téléphone.
 
 ### D. Répétition générale : générer des équipes fictives (ticket 10)
 

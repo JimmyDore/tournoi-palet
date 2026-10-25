@@ -13,6 +13,7 @@ describe('édition', () => {
       startTime: '14:00',
       venue: 'Salle Arc-en-Ciel, Chantonnay',
       price: 18,
+      deposit: 2,
       contact: '',
       boards: 24,
       maxTeams: 48,

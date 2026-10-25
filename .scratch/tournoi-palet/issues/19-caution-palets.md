@@ -13,10 +13,10 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Prêt, annulation du prêt, rendu et annulation du rendu sont des commandes du moteur, avec refus clairs (rendu sans prêt, etc.)
-- [ ] Le compteur et le filtre « Palets à rendre » sont justes
-- [ ] Rien n'apparaît dans les vues publiques
-- [ ] Journal et export à jour
+- [x] Prêt, annulation du prêt, rendu et annulation du rendu sont des commandes du moteur, avec refus clairs (rendu sans prêt, etc.)
+- [x] Le compteur et le filtre « Palets à rendre » sont justes
+- [x] Rien n'apparaît dans les vues publiques
+- [x] Journal et export à jour
 - [ ] Déployé et vérifié en prod

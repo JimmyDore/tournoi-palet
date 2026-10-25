@@ -3,6 +3,7 @@ import type { EditionSettings } from './settings.ts'
 import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
+import { paletsView, type PaletsView } from './palets.ts'
 import { poolLockProblem, poolView, type PoolStanding, type PoolView } from './pool.ts'
 import type { TeamRef } from './types.ts'
 import { prizesView, type PrizesView } from './prizes.ts'
@@ -117,6 +118,10 @@ export interface AdminTeam extends Omit<TeamFields, 'name'> {
   waitlistPosition: number | null
   registeredAt: number
   checkedInAt: number | null
+  /** Palets prêtés contre caution (heure du prêt), sinon `null`. */
+  paletsLentAt: number | null
+  /** Palets rendus (heure du rendu), sinon `null`. */
+  paletsReturnedAt: number | null
   /** Alertes non bloquantes (ex. deux licenciés). */
   warnings: string[]
   /** Peut encore être désinscrite (pas tirée en poule). */
@@ -143,6 +148,8 @@ export interface AdminView {
   ranking: FinalRanking
   /** Tranches de lots et places non couvertes. */
   prizes: PrizesView
+  /** Caution des palets : jeux prêtés, rendus, à rendre. */
+  palets: PaletsView
   tv: TvState
   clock: ClockState | null
 }
@@ -160,6 +167,8 @@ export function adminView(state: EditionState): AdminView {
       customName: name,
       status,
       waitlistPosition: status === 'waitlist' ? waitlist.findIndex((w) => w.id === team.id) + 1 : null,
+      paletsLentAt: state.palets[team.id]?.lentAt ?? null,
+      paletsReturnedAt: state.palets[team.id]?.returnedAt ?? null,
       warnings: teamWarnings(team),
       canWithdraw: poolLockProblem(state, { type: 'withdrawTeam', teamId: team.id }) === null,
     }
@@ -179,6 +188,7 @@ export function adminView(state: EditionState): AdminView {
     brackets,
     ranking,
     prizes: prizesView(state),
+    palets: paletsView(state),
     tv: state.tv,
     clock: state.clock,
   }

@@ -697,6 +697,22 @@ a {
   color: var(--vert);
 }
 
+.palets-control {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.checkin-box.palets-box {
+  min-width: 0;
+  font-weight: 500;
+  color: var(--texte);
+}
+
+.palets-box input {
+  accent-color: var(--petrole);
+}
+
 .badge-wait {
   margin-left: 0.4rem;
   background: var(--or-clair);
@@ -718,6 +734,9 @@ a {
   }
   .checkin-row .team-actions {
     order: 3;
+  }
+  .palets-control .checkin-box {
+    order: 0;
   }
 }
 

@@ -47,6 +47,14 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       const price = before.edition ? formatSetting('price', before.edition.settings.price) : '?'
       return { label: `Équipe « ${nameIn(before, event.teamId)} » pointée (présente, ${price} payés)` }
     }
+    case 'paletsLent':
+      return { label: `Palets prêtés à « ${nameIn(before, event.teamId)} » (caution de ${depositOf(before)})` }
+    case 'paletsLoanCancelled':
+      return { label: `Prêt de palets à « ${nameIn(before, event.teamId)} » annulé` }
+    case 'paletsReturned':
+      return { label: `Palets rendus par « ${nameIn(before, event.teamId)} » (caution de ${depositOf(before)} remboursée)` }
+    case 'paletsReturnCancelled':
+      return { label: `Rendu des palets de « ${nameIn(before, event.teamId)} » annulé` }
     case 'teamCheckInUndone':
       return { label: `Pointage de « ${nameIn(before, event.teamId)} » annulé` }
     case 'absentTeamReplaced':
@@ -220,3 +228,5 @@ function moves(before: EditionState, after: EditionState): string {
     .filter(Boolean)
     .join('')
 }
+
+const depositOf = (state: EditionState) => (state.edition ? formatSetting('deposit', state.edition.settings.deposit) : '?')
