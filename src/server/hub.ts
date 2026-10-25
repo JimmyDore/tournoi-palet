@@ -37,6 +37,16 @@ export class Hub {
     this.subscriptions.delete(socket)
   }
 
+  /** Édition supprimée : chaque abonné reçoit « introuvable » et est coupé. */
+  drop(editionId: string): void {
+    for (const [socket, sub] of this.subscriptions) {
+      if (sub.editionId !== editionId) continue
+      this.subscriptions.delete(socket)
+      send(socket, { type: 'error', editionId, reason: 'not_found' })
+      socket.close()
+    }
+  }
+
   broadcast(editionId: string, state: EditionState): void {
     let publicMessage: string | undefined
     let adminMessage: string | undefined

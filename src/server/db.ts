@@ -51,6 +51,14 @@ export function appendEvents(db: DatabaseSync, editionId: string, firstSeq: numb
   }
 }
 
+/**
+ * Efface tous les événements d'une édition. Seule entorse à « on n'efface
+ * jamais un fait » : réservée aux éditions de test (voir `EditionStore.remove`).
+ */
+export function deleteEvents(db: DatabaseSync, editionId: string): void {
+  db.prepare('DELETE FROM events WHERE edition_id = ?').run(editionId)
+}
+
 /** Les événements d'une édition, dans l'ordre, et l'auteur de chacun (`null` : inconnu). */
 export interface StoredEvents {
   events: Event[]

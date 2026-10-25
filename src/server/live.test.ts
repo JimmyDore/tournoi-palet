@@ -219,4 +219,19 @@ describe('visibilité et session vérifiées à chaque diffusion', () => {
     expect(consoleSocket.messages.filter((m) => m.type === 'view')).toHaveLength(1)
     expect(consoleSocket.messages.at(-1)).toMatchObject({ type: 'error', reason: 'unauthorized' })
   })
+
+  it('une édition de test supprimée coupe la console et la télé abonnées', async () => {
+    const created = await api('/api/admin/editions', { settings: { name: 'À supprimer', date: '2026-12-19', isTest: true } })
+    const id = created.body.id as string
+    const tv = listen({ type: 'subscribe', editionId: id, k: created.body.view.previewToken })
+    const consoleSocket = listen({ type: 'subscribe-admin', editionId: id }, cookie)
+    await tv.until(() => tv.messages.some((m) => m.type === 'view'), 'première vue')
+    await consoleSocket.until(() => consoleSocket.messages.some((m) => m.type === 'view'), 'première vue')
+
+    expect((await api(`/api/admin/editions/${id}/delete`, {})).status).toBe(200)
+    for (const socket of [tv, consoleSocket]) {
+      await socket.until(socket.isClosed, 'coupé')
+      expect(socket.messages.at(-1)).toMatchObject({ type: 'error', reason: 'not_found' })
+    }
+  })
 })

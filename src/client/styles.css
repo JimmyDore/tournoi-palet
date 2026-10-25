@@ -949,6 +949,16 @@ a {
   }
 }
 
+@media (max-width: 30rem) {
+  .standings .hide-narrow {
+    display: none;
+  }
+  .standings th:last-child,
+  .standings td:last-child {
+    padding-right: 0;
+  }
+}
+
 /* Onglet Tableaux */
 .split-form {
   display: flex;

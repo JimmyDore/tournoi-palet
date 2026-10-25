@@ -415,6 +415,7 @@ function Standings({
   return (
     <section className="panel">
       <h2>Classement des poules</h2>
+      {/* Sur téléphone, J, D et Contre sont masqués pour garder le bouton Forfait à l'écran. */}
       <p className="muted small">Victoires, puis points pour, puis différence, puis points contre. Les équipes forfait sont classées en dernier.</p>
       <div className="table-wrap">
         <table className="standings">
@@ -424,17 +425,19 @@ function Standings({
               <th scope="col" className="left">
                 Équipe
               </th>
-              <th scope="col" title="Matchs joués">
+              <th scope="col" className="hide-narrow" title="Matchs joués">
                 J
               </th>
               <th scope="col" title="Victoires">
                 V
               </th>
-              <th scope="col" title="Défaites">
+              <th scope="col" className="hide-narrow" title="Défaites">
                 D
               </th>
               <th scope="col">Pour</th>
-              <th scope="col">Contre</th>
+              <th scope="col" className="hide-narrow">
+                Contre
+              </th>
               <th scope="col">Diff.</th>
               <th scope="col">
                 <span className="visually-hidden">Forfait</span>
@@ -449,13 +452,13 @@ function Standings({
                   {s.team.name}
                   {s.forfeit && <span className="badge badge-forfeit">forfait</span>}
                 </td>
-                <td>{s.played}</td>
+                <td className="hide-narrow">{s.played}</td>
                 <td>
                   <strong>{s.wins}</strong>
                 </td>
-                <td>{s.losses}</td>
+                <td className="hide-narrow">{s.losses}</td>
                 <td>{s.pointsFor}</td>
-                <td>{s.pointsAgainst}</td>
+                <td className="hide-narrow">{s.pointsAgainst}</td>
                 <td>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>
                 <td>
                   {s.forfeit ? (

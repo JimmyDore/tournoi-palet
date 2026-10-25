@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { MAX_TEAMS_LIMIT, type EditionSettings } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
+import { DeleteEdition } from './DeleteEdition.tsx'
 import { PrizesEditor } from './PrizesEditor.tsx'
 import type { TabProps } from './tabs.tsx'
 
@@ -206,6 +207,7 @@ export function SettingsTab({ view }: TabProps) {
       )}
     </form>
     <PrizesEditor view={view} />
+    {view.settings.isTest && <DeleteEdition view={view} />}
     </div>
   )
 }

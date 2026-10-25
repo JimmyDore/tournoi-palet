@@ -2,7 +2,7 @@
 
 À suivre dans l'ordre d'une vraie journée, sur une **édition de test**. Prévoir environ 1 h 30. Il faut le PC (console), la vraie télé et ton téléphone.
 
-État en prod au moment de l'écriture : commit `17f5f89`, tickets 02 à 17. Trois éditions de test terminées existent déjà (« Vérif prod 40 », « Vérif prod 48 », « Vérif prod 52 »), créées pendant la vérification de nuit. Elles sont invisibles côté public. Il n'y a pas de bouton pour supprimer une édition (voir les limites connues).
+État en prod au moment de l'écriture : commit `17f5f89`, tickets 02 à 17. Trois éditions de test terminées existent déjà (« Vérif prod 40 », « Vérif prod 48 », « Vérif prod 52 »), créées pendant la vérification de nuit. Elles sont invisibles côté public. Une édition de test se supprime en bas de l'onglet **Réglages** ; une vraie édition ne se supprime pas.
 
 ## 1. Adresses et connexion
 
@@ -195,10 +195,8 @@ Le détail est dans le fichier (une ligne par décision). Les plus visibles :
 
 ### Bugs et limites connus
 
-- **Pas de suppression d'édition.** Les éditions de test s'accumulent dans la console : « Vérif prod 40/48/52 » de cette nuit, puis les tiennes. Elles restent invisibles côté public.
 - **Journal chargé en répétition.** Chaque équipe fictive et chaque score tiré au hasard fait une ligne : une répétition à 64 équipes produit des centaines de lignes.
 - **Répartition 2/3 à 52 équipes.** Elle donne un tableau de 64 à 29 exempts et un Challenge Consolante d'une seule équipe. La console le signale, et « Principal plein » ou une saisie à 32 corrige. À trancher avec Jean.
-- **Sur téléphone (375 px)**, dans l'onglet Poules de la console, le tableau du classement défile sur le côté : le bouton « Forfait » est hors écran tant qu'on ne fait pas défiler.
 - **Lien `?k=` d'une édition de test.** Toute personne qui a ce lien (ou qui scanne le QR code de la télé pendant une répétition) voit l'édition. C'est voulu pour répéter, mais ne pas projeter une édition de test pendant le vrai tournoi.
 - **Tests navigateur.** Faits par agent-browser (Chrome) en 1920×1080 et 375 px. Rien n'a été essayé sur Safari iOS ni sur le navigateur de la télé : à vérifier sur ton matériel (étape H).
 

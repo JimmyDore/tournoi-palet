@@ -48,6 +48,14 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): v
     return answer(reply, ctx.execute(req.params.id, command, auth.actorFromCookieHeader(req.headers.cookie)))
   })
 
+  // En POST, comme les commandes (le client n'a que `postJson`).
+  app.post<{ Params: { id: string } }>('/api/admin/editions/:id/delete', async (req, reply) => {
+    const result = store.remove(req.params.id)
+    if (!result.ok) return reply.code(result.notFound ? 404 : 400).send({ ok: false, reason: result.reason })
+    ctx.hub.drop(req.params.id)
+    return { ok: true }
+  })
+
   // Fichier lisible (JSON indenté) : vues calculées et événements, à garder hors du serveur.
   app.get<{ Params: { id: string } }>('/api/admin/editions/:id/export', async (req, reply) => {
     const state = store.get(req.params.id)

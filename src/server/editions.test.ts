@@ -97,6 +97,29 @@ describe('console', () => {
     expect(journal.body.map((l: { label: string }) => l.label)).toEqual(['Édition « Concours 2026 » créée', 'Réglages modifiés'])
   })
 
+  it('supprime une édition de test, définitivement, mais jamais une vraie édition', async () => {
+    const cookie = await login()
+    const test = (await api('POST', '/api/admin/editions', cookie, { settings: { name: 'Répétition', date: '2026-12-01', isTest: true } })).body.id as string
+    const real = (await api('POST', '/api/admin/editions', cookie, { settings: { name: 'La vraie', date: '2026-12-19' } })).body.id as string
+    await api('POST', `/api/admin/editions/${test}/commands`, cookie, { command: { type: 'generateFakeTeams', count: 4 } })
+
+    expect((await api('POST', `/api/admin/editions/${test}/delete`)).status).toBe(401)
+    expect(await api('POST', `/api/admin/editions/${real}/delete`, cookie)).toEqual({
+      status: 400,
+      body: { ok: false, reason: 'Seule une édition de test peut être supprimée.' },
+    })
+    expect(await api('POST', `/api/admin/editions/${test}/delete`, cookie)).toEqual({ status: 200, body: { ok: true } })
+    expect((await api('POST', `/api/admin/editions/${test}/delete`, cookie)).status).toBe(404)
+    expect((await api('GET', `/api/admin/editions/${test}`, cookie)).status).toBe(404)
+
+    await app.close()
+    await start()
+
+    const ids = (await api('GET', '/api/admin/editions', cookie)).body.map((e: { id: string }) => e.id)
+    expect(ids).toContain(real)
+    expect(ids).not.toContain(test)
+  })
+
   it('le journal dit qui a fait chaque modification (prénom facultatif à la connexion)', async () => {
     const res = await fetch(`http://${base}/api/login`, {
       method: 'POST',

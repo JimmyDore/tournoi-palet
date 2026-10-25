@@ -15,7 +15,7 @@ import {
   type EditionSummary,
   type Event,
 } from '../engine/index.ts'
-import { appendEvents, loadEvents } from './db.ts'
+import { appendEvents, deleteEvents, loadEvents } from './db.ts'
 
 export interface JournalLine {
   seq: number
@@ -87,6 +87,16 @@ export class EditionStore {
     if (!edition) return { ok: false, reason: "Cette édition n'existe pas.", notFound: true }
     if (command?.type === 'createEdition') return { ok: false, reason: 'Cette édition existe déjà.' }
     return this.commit(editionId, edition, command, ctx, actor)
+  }
+
+  /** Supprime une édition de test et ses événements ; une vraie édition ne se supprime jamais. */
+  remove(editionId: string): { ok: true } | { ok: false; reason: string; notFound?: boolean } {
+    const edition = this.editions.get(editionId)
+    if (!edition) return { ok: false, reason: "Cette édition n'existe pas.", notFound: true }
+    if (!edition.state.edition?.settings.isTest) return { ok: false, reason: 'Seule une édition de test peut être supprimée.' }
+    deleteEvents(this.db, editionId)
+    this.editions.delete(editionId)
+    return { ok: true }
   }
 
   journal(editionId: string): JournalLine[] | undefined {
