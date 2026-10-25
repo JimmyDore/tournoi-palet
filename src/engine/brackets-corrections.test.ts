@@ -1,33 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, correctionImpact, describeEvent, finalRanking, replay, type BracketMatchView, type Command } from './index.ts'
+import { adminView, bracketsView, correctionImpact, describeEvent, finalRanking, replay, type BracketMatchView } from './index.ts'
 import { seededRng, randomInt } from './rng.ts'
-import { createEdition, run, type Harness } from './testing.ts'
+import { allBracketMatches, bracketsReady, round, type Harness } from './testing.ts'
 
 // Tableaux : corrections en cascade, forfaits et matchs prêts.
 
-/** `count` équipes pointées, les 4 parties de poule jouées, tableaux générés avec la répartition proposée. */
-function bracketsReady(count: number, settings = {}): Harness {
-  const ids = Array.from({ length: count }, (_, i) => i + 1)
-  const t = run([
-    createEdition({ maxTeams: Math.max(48, count), ...settings }),
-    ...ids.map((i): Command => ({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })),
-    ...ids.map((i): Command => ({ type: 'checkInTeam', teamId: `t${i}` })),
-  ])
-  let k = 0
-  for (let round = 1; round <= 4; round++) {
-    t.apply({ type: 'drawPoolRound', round })
-    for (const m of t.state.pool.rounds.at(-1)!.matches) {
-      k++
-      t.apply({ type: 'enterPoolScore', matchId: m.id, scoreA: 13, scoreB: k % 13 })
-    }
-  }
-  t.apply({ type: 'validateSplit', principalCount: bracketsView(t.state).split.proposedPrincipal })
-  return t.apply({ type: 'generateBrackets' })
-}
-
-const allMatches = (t: Harness) => bracketsView(t.state).brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))
+const allMatches = allBracketMatches
 const match = (t: Harness, id: string) => allMatches(t).find((m) => m.id === id)!
-const round = (t: Harness, key: 'P' | 'C', n: number) => bracketsView(t.state).brackets.find((b) => b.key === key)!.rounds[n - 1].matches
 const score = (t: Harness, id: string, scoreA: number, scoreB: number, confirm?: boolean) =>
   t.apply({ type: 'enterBracketScore', matchId: id, scoreA, scoreB, ...(confirm ? { confirm } : {}) })
 const has = (m: BracketMatchView, teamId: string) => m.teamA?.id === teamId || m.teamB?.id === teamId
@@ -39,7 +18,7 @@ function expectBoardsCoherent(t: Harness) {
   const boards = live.filter((m) => m.status === 'playing').map((m) => m.board)
   expect(new Set(boards).size).toBe(boards.length)
   const waiting = live.filter((m) => m.status === 'waiting-board').length
-  if (waiting > 0) expect(boards.length).toBe(t.state.edition!.settings.boards)
+  if (waiting > 0) expect(boards.length).toBe(adminView(t.state).settings.boards)
 }
 
 describe('correction qui change le vainqueur', () => {
@@ -73,13 +52,20 @@ describe('correction qui change le vainqueur', () => {
     score(t, 'P:1:0', 4, 13, true)
     // 1/2 rejouée avec la nouvelle équipe, son ancien score effacé pour de bon.
     expect(match(t, 'P:2:0')).toMatchObject({ teamA: { id: q0.teamB!.id }, teamB: { id: semi.teamB!.id }, score: null, status: 'playing' })
-    expect(t.state.brackets.scores['P:2:0']).toBeUndefined()
     // Finale : une équipe à déterminer, plus lancée, sa planche rendue.
     expect(match(t, 'P:3:0')).toMatchObject({ teamA: null, status: 'pending', board: null })
     expectBoardsCoherent(t)
     // Le tableau repart : la 1/2 rejouée relance la finale.
     score(t, 'P:2:0', 13, 2)
     expect(match(t, 'P:3:0')).toMatchObject({ teamA: { id: q0.teamB!.id }, status: 'playing' })
+    expectBoardsCoherent(t)
+  })
+
+  it('un score effacé par une correction ne revient pas quand on rétablit le premier vainqueur', () => {
+    const t = finalLaunched()
+    score(t, 'P:1:0', 4, 13, true)
+    score(t, 'P:1:0', 13, 5, true)
+    expect(match(t, 'P:2:0')).toMatchObject({ score: null, status: 'playing' })
     expectBoardsCoherent(t)
   })
 
@@ -137,12 +123,11 @@ describe('cascade vers le Challenge', () => {
     score(t, 'P:1:0', 4, 13, true)
     expect(cpTeams()).toContain(q0.teamA!.id)
     expect(cpTeams()).not.toContain(q0.teamB!.id)
-    // Plus aucun score mémorisé avec d'autres équipes que celles du match.
-    const derived = new Map(allMatches(t).map((m) => [m.id, m]))
-    for (const [id, s] of Object.entries(t.state.brackets.scores)) {
-      expect([s.teamA, s.teamB]).toEqual([derived.get(id)!.teamA!.id, derived.get(id)!.teamB!.id])
-    }
     expect(cp().every((m) => m.status === 'playing' || (m.status === 'done' && m.teamA!.id === played.teamA!.id && m.teamB!.id === played.teamB!.id))).toBe(true)
+    expectBoardsCoherent(t)
+    // Effacé pour de bon : revenir au premier score ne fait pas réapparaître les scores du Challenge.
+    score(t, 'P:1:0', 13, 5, true)
+    expect(cp().find((m) => m.teamA!.id === played.teamA!.id && m.teamB!.id === played.teamB!.id)?.score ?? null).toBeNull()
     expectBoardsCoherent(t)
   })
 })

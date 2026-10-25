@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { adminView, bracketsView, exportView, finalRanking, openMatches, phaseOf, publicView, replay, type BracketKey } from './index.ts'
-import { bracketsReady, type Harness } from './testing.ts'
+import { adminView, exportView, finalRanking, openMatches, phaseOf, publicView, replay } from './index.ts'
+import { bracketsReady, round, type Harness } from './testing.ts'
 
 // Classement final de 1 à N : blocs Principal, Challenge Principal,
 // Consolante, Challenge Consolante, puis forfaits de poule.
 
-const round = (t: Harness, key: BracketKey, n: number) => bracketsView(t.state).brackets.find((b) => b.key === key)!.rounds[n - 1].matches
 /** Répétition générale jusqu'au bout : un remplissage au hasard par tour. */
 const playAll = (t: Harness) => {
   while (openMatches(t.state).length > 0) t.apply({ type: 'fillRandomScores' })

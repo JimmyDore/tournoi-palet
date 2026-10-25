@@ -324,7 +324,7 @@ describe('vues publique et console', () => {
     expect(pub.pool).toEqual(adminView(t.state).pool)
     expect(pub.pool.rounds[0].matches[0].score).not.toBeNull()
     const json = JSON.stringify(pub)
-    for (const secret of ['0611223344', 'secret', 'Licensed', 'checkedIn', t.state.edition!.previewToken]) expect(json).not.toContain(secret)
+    for (const secret of ['0611223344', 'secret', 'Licensed', 'checkedIn', adminView(t.state).previewToken]) expect(json).not.toContain(secret)
   })
 })
 

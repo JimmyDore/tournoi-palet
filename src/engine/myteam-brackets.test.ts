@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, myTeamView, openMatches, publicView, replay, type BracketKey, type BracketMatchView } from './index.ts'
-import { bracketsReady, type Harness } from './testing.ts'
+import { bracketsView, myTeamView, openMatches, publicView, replay, type BracketMatchView } from './index.ts'
+import { bracketsReady, round, type Harness } from './testing.ts'
 
 // « Mon équipe » dans les tableaux : prochaine planche, adversaire, tour et
 // tableau, puis la place finale une fois définitive.
 
 const mine = (t: Harness, teamId: string) => myTeamView(publicView(t.state), teamId)!
-const round = (t: Harness, key: BracketKey, n: number) => bracketsView(t.state).brackets.find((b) => b.key === key)!.rounds[n - 1].matches
 const named = (team: BracketMatchView['teamA']) => ({ id: team!.id, name: team!.name })
 /** L'équipe A gagne, sur le score de défaite donné. */
 const winA = (t: Harness, m: BracketMatchView, losing = 5) => t.apply({ type: 'enterBracketScore', matchId: m.id, scoreA: 13, scoreB: losing })

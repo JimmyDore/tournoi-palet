@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockReading, describeEvent, initialState, publicView, replay, type Command } from './index.ts'
+import { adminView, clockReading, describeEvent, poolView, initialState, publicView, replay, type Command } from './index.ts'
 import { createEdition, run, TEST_NOW } from './testing.ts'
 
 const start = (durationMin?: number) => ({ type: 'startClock', ...(durationMin !== undefined ? { durationMin } : {}) }) as Command
@@ -60,9 +60,9 @@ describe('chrono', () => {
       { type: 'registerTeam', team: { player1: 'Anne', player2: 'Bob' } } as Command,
       { type: 'registerTeam', team: { player1: 'Carl', player2: 'Dora' } } as Command,
     ])
-    for (const team of t.state.teams) t.apply({ type: 'checkInTeam', teamId: team.id } as Command)
+    for (const team of adminView(t.state).teams) t.apply({ type: 'checkInTeam', teamId: team.id } as Command)
     t.apply({ type: 'drawPoolRound', round: 1 } as Command)
-    const match = t.state.pool.rounds[0].matches[0]
+    const match = poolView(t.state).rounds[0].matches[0]
     t.apply({ type: 'enterPoolScore', matchId: match.id, scoreA: 13, scoreB: 4 } as Command)
     t.apply({ type: 'updateEdition', changes: { gameMinutes: 20 } } as Command)
     expect(publicView(t.state).pool.rounds[0].complete).toBe(true)

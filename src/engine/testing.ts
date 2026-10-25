@@ -1,5 +1,6 @@
-import { bracketsView } from './brackets.ts'
+import { bracketsView, type BracketKey, type BracketMatchView } from './brackets.ts'
 import { decide, evolve, type Command, type Event } from './engine.ts'
+import { poolView } from './pool.ts'
 import { seededRng } from './rng.ts'
 import { initialState, type EditionState } from './state.ts'
 import type { EditionSettings } from './settings.ts'
@@ -53,27 +54,43 @@ export function createEdition(settings: Partial<EditionSettings> = {}, editionId
   return { type: 'createEdition', editionId, settings: { name: 'Concours de test', date: '2026-12-19', ...settings } }
 }
 
-/**
- * `count` équipes pointées, les 4 parties de poule jouées (l'équipe A gagne,
- * scores variés), les équipes `forfeits` déclarées forfait ensuite, puis les
- * tableaux générés avec la répartition proposée.
- */
-export function bracketsReady(count: number, settings: Partial<EditionSettings> = {}, forfeits: string[] = []): Harness {
+/** `count` équipes pointées, les 4 parties de poule jouées (l'équipe A gagne, scores variés). */
+export function poolsDone(count: number, settings: Partial<EditionSettings> = {}, seed = TEST_SEED): Harness {
   const ids = Array.from({ length: count }, (_, i) => i + 1)
-  const t = run([
-    createEdition({ maxTeams: Math.max(48, count), ...settings }),
-    ...ids.map((i): Command => ({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })),
-    ...ids.map((i): Command => ({ type: 'checkInTeam', teamId: `t${i}` })),
-  ])
+  const t = run(
+    [
+      createEdition({ maxTeams: Math.max(48, count), ...settings }),
+      ...ids.map((i): Command => ({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })),
+      ...ids.map((i): Command => ({ type: 'checkInTeam', teamId: `t${i}` })),
+    ],
+    { seed },
+  )
   let k = 0
   for (let round = 1; round <= 4; round++) {
     t.apply({ type: 'drawPoolRound', round })
-    for (const m of t.state.pool.rounds.at(-1)!.matches) {
+    for (const m of poolView(t.state).rounds.at(-1)!.matches) {
       k++
       t.apply({ type: 'enterPoolScore', matchId: m.id, scoreA: 13, scoreB: k % 13 })
     }
   }
+  return t
+}
+
+/**
+ * `count` équipes pointées, les 4 parties de poule jouées, les équipes
+ * `forfeits` déclarées forfait ensuite, puis les tableaux générés avec la
+ * répartition proposée.
+ */
+export function bracketsReady(count: number, settings: Partial<EditionSettings> = {}, forfeits: string[] = []): Harness {
+  const t = poolsDone(count, settings)
   for (const teamId of forfeits) t.apply({ type: 'declareForfeit', teamId })
   t.apply({ type: 'validateSplit', principalCount: bracketsView(t.state).split.proposedPrincipal })
   return t.apply({ type: 'generateBrackets' })
 }
+
+/** Un tableau de la vue des tableaux. */
+export const bracket = (t: Harness, key: BracketKey) => bracketsView(t.state).brackets.find((b) => b.key === key)!
+/** Les matchs du tour `n` (1 = premier tour) d'un tableau. */
+export const round = (t: Harness, key: BracketKey, n: number): BracketMatchView[] => bracket(t, key).rounds[n - 1].matches
+/** Tous les matchs de tous les tableaux. */
+export const allBracketMatches = (t: Harness): BracketMatchView[] => bracketsView(t.state).brackets.flatMap((b) => b.rounds.flatMap((r) => r.matches))

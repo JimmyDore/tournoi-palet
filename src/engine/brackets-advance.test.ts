@@ -1,31 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, describeEvent, milestones, replay, type BracketMatchView, type Command } from './index.ts'
-import { createEdition, run, type Harness } from './testing.ts'
+import { bracketsView, describeEvent, milestones, replay, type BracketMatchView } from './index.ts'
+import { bracket, bracketsReady, round, type Harness } from './testing.ts'
 
 // Tableaux : avancement des vainqueurs, tours synchronisés, planches.
 
-/** `count` équipes pointées, les 4 parties de poule jouées, tableaux générés avec la répartition proposée. */
-function bracketsReady(count: number, settings = {}): Harness {
-  const ids = Array.from({ length: count }, (_, i) => i + 1)
-  const t = run([
-    createEdition({ maxTeams: Math.max(48, count), ...settings }),
-    ...ids.map((i): Command => ({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })),
-    ...ids.map((i): Command => ({ type: 'checkInTeam', teamId: `t${i}` })),
-  ])
-  let k = 0
-  for (let round = 1; round <= 4; round++) {
-    t.apply({ type: 'drawPoolRound', round })
-    for (const m of t.state.pool.rounds.at(-1)!.matches) {
-      k++
-      t.apply({ type: 'enterPoolScore', matchId: m.id, scoreA: 13, scoreB: k % 13 })
-    }
-  }
-  t.apply({ type: 'validateSplit', principalCount: bracketsView(t.state).split.proposedPrincipal })
-  return t.apply({ type: 'generateBrackets' })
-}
-
-const bracket = (t: Harness, key: 'P' | 'C' | 'CP') => bracketsView(t.state).brackets.find((b) => b.key === key)!
-const round = (t: Harness, key: 'P' | 'C' | 'CP', n: number) => bracket(t, key).rounds[n - 1].matches
 /** Fait gagner l'équipe A (13-5) ou B (4-13). */
 const win = (t: Harness, m: BracketMatchView, side: 'A' | 'B' = 'A', confirm = false) =>
   t.apply({ type: 'enterBracketScore', matchId: m.id, scoreA: side === 'A' ? 13 : 4, scoreB: side === 'A' ? 5 : 13, confirm })

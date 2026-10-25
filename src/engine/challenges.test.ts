@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, milestones, openMatches, type BracketKey, type BracketMatchView } from './index.ts'
-import { bracketsReady, type Harness } from './testing.ts'
+import { bracketsView, milestones, openMatches, type BracketMatchView } from './index.ts'
+import { bracket, bracketsReady, round, type Harness } from './testing.ts'
 
 // Challenges : les perdants des vrais matchs du 1er tour du Principal (resp.
 // de la Consolante) jouent le Challenge Principal (resp. Consolante).
 
-const bracket = (t: Harness, key: BracketKey) => bracketsView(t.state).brackets.find((b) => b.key === key)
-const round = (t: Harness, key: BracketKey, n: number) => bracket(t, key)!.rounds[n - 1].matches
 const open = (m: BracketMatchView) => m.status === 'playing' || m.status === 'waiting-board'
 /** Fait gagner l'équipe A (13-5) ou B (4-13). */
 const win = (t: Harness, m: BracketMatchView, side: 'A' | 'B' = 'A') =>

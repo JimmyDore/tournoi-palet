@@ -1,30 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, describeEvent, evolve, initialState, poolStandings, publicView, replay, seededRng, type Command } from './index.ts'
-import { createEdition, run, type Harness } from './testing.ts'
+import { bracketsView, describeEvent, evolve, initialState, poolStandings, poolView, publicView, replay, seededRng, type Command } from './index.ts'
+import { bracket, createEdition, poolsDone, run, type Harness } from './testing.ts'
 
 // Tableaux : répartition Principal / Consolante, génération et premier tour.
-
-/** `count` équipes pointées, les 4 parties de poule jouées (scores variés). */
-function poolsDone(count: number, settings = {}, seed?: number): Harness {
-  const ids = Array.from({ length: count }, (_, i) => i + 1)
-  const t = run(
-    [
-      createEdition({ maxTeams: Math.max(48, count), ...settings }),
-      ...ids.map((i): Command => ({ type: 'registerTeam', team: { player1: `J${i}a`, player2: `J${i}b` } })),
-      ...ids.map((i): Command => ({ type: 'checkInTeam', teamId: `t${i}` })),
-    ],
-    seed === undefined ? {} : { seed },
-  )
-  let k = 0
-  for (let round = 1; round <= 4; round++) {
-    t.apply({ type: 'drawPoolRound', round })
-    for (const m of t.state.pool.rounds.at(-1)!.matches) {
-      k++
-      t.apply({ type: 'enterPoolScore', matchId: m.id, scoreA: 13, scoreB: k % 13 })
-    }
-  }
-  return t
-}
 
 describe('répartition Principal / Consolante', () => {
   it('propose 2/3 des équipes en Principal à la fin des poules : 48 → 32 / 16', () => {
@@ -35,7 +13,6 @@ describe('répartition Principal / Consolante', () => {
 
 const validate = (principalCount: number): Command => ({ type: 'validateSplit', principalCount })
 const generate: Command = { type: 'generateBrackets' }
-const bracket = (t: Harness, key: 'P' | 'C') => bracketsView(t.state).brackets.find((b) => b.key === key)!
 const firstRound = (t: Harness, key: 'P' | 'C') => bracket(t, key).rounds[0].matches
 /** Ids des équipes classées en poule, la 1re d'abord. */
 const ranked = (t: Harness) => poolStandings(t.state).map((s) => s.team.id)
@@ -159,7 +136,7 @@ describe('génération des tableaux', () => {
 
   it('refuse les commandes de poule une fois les tableaux générés', () => {
     const t = poolsDone(12).apply(validate(8)).apply(generate)
-    const poolMatch = t.state.pool.rounds[3].matches[0]
+    const poolMatch = poolView(t.state).rounds[3].matches[0]
     expect(t.refusal({ type: 'enterPoolScore', matchId: poolMatch.id, scoreA: 2, scoreB: 13 })).toBe('Les tableaux sont générés : les poules sont closes.')
     expect(t.refusal({ type: 'removePoolRound', round: 4, confirm: true })).toBe('Les tableaux sont générés : les poules sont closes.')
     expect(t.refusal({ type: 'updateEdition', changes: { byeScore: { winner: 13, loser: 0 } } })).toMatch(/score d’exempt/)
