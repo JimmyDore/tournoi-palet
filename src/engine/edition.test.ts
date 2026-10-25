@@ -21,6 +21,7 @@ describe('édition', () => {
       isTest: false,
       bracketFirstRound: 'seeded',
       bracketPace: 'synchronized',
+      splitRule: 'twoThirds',
     })
   })
 })

@@ -31,10 +31,16 @@ export interface EditionSettings {
    * équipes sont connues).
    */
   bracketPace: BracketPace
+  /**
+   * Proposition de répartition : 2/3 des équipes en Principal, ou la
+   * puissance de 2 la plus proche des 2/3 (Principal sans exempt).
+   */
+  splitRule: SplitRule
 }
 
 export type BracketFirstRound = 'seeded' | 'random'
 export type BracketPace = 'synchronized' | 'asReady'
+export type SplitRule = 'twoThirds' | 'fullPrincipal'
 
 export const MAX_TEAMS_LIMIT = 64
 export const MAX_SCORE = 13
@@ -52,6 +58,7 @@ export const DEFAULT_SETTINGS: Omit<EditionSettings, 'name' | 'date'> = {
   isTest: false,
   bracketFirstRound: 'seeded',
   bracketPace: 'synchronized',
+  splitRule: 'twoThirds',
 }
 
 export const SETTING_KEYS = [
@@ -69,6 +76,7 @@ export const SETTING_KEYS = [
   'isTest',
   'bracketFirstRound',
   'bracketPace',
+  'splitRule',
 ] as const satisfies readonly (keyof EditionSettings)[]
 
 export const SETTING_LABELS: Record<keyof EditionSettings, string> = {
@@ -86,6 +94,7 @@ export const SETTING_LABELS: Record<keyof EditionSettings, string> = {
   isTest: 'Édition de test',
   bracketFirstRound: '1er tour des tableaux',
   bracketPace: 'Rythme des tableaux',
+  splitRule: 'Règle de répartition',
 }
 
 export function formatSetting<K extends keyof EditionSettings>(key: K, value: EditionSettings[K]): string {
@@ -104,6 +113,8 @@ export function formatSetting<K extends keyof EditionSettings>(key: K, value: Ed
       return value === 'random' ? 'tirage au sort' : 'têtes de série'
     case 'bracketPace':
       return value === 'asReady' ? 'au fil de l’eau' : 'tours synchronisés'
+    case 'splitRule':
+      return value === 'fullPrincipal' ? 'Principal plein (puissance de 2)' : '2/3 en Principal'
     default:
       return String(value) || '(vide)'
   }
@@ -155,6 +166,9 @@ export function settingsProblem(s: EditionSettings): string | null {
   }
   if (s.bracketPace !== 'synchronized' && s.bracketPace !== 'asReady') {
     return 'Le rythme des tableaux est « tours synchronisés » ou « au fil de l’eau ».'
+  }
+  if (s.splitRule !== 'twoThirds' && s.splitRule !== 'fullPrincipal') {
+    return 'La règle de répartition est « 2/3 en Principal » ou « Principal plein ».'
   }
   return null
 }

@@ -6,7 +6,7 @@ import { PrizesEditor } from './PrizesEditor.tsx'
 import type { TabProps } from './tabs.tsx'
 
 /** Réglages choisis dans une liste ou par une case : gardés tels quels. */
-type Choices = Pick<EditionSettings, 'isTest' | 'bracketFirstRound' | 'bracketPace'>
+type Choices = Pick<EditionSettings, 'isTest' | 'bracketFirstRound' | 'bracketPace' | 'splitRule'>
 
 /** Le formulaire garde des chaînes ; le moteur valide et refuse au besoin. */
 type Form = Record<Exclude<keyof EditionSettings, 'byeScore' | keyof Choices>, string> &
@@ -32,6 +32,7 @@ function toForm(s: EditionSettings): Form {
     isTest: s.isTest,
     bracketFirstRound: s.bracketFirstRound,
     bracketPace: s.bracketPace,
+    splitRule: s.splitRule,
   }
 }
 
@@ -53,6 +54,7 @@ function toSettings(f: Form): EditionSettings {
     isTest: f.isTest,
     bracketFirstRound: f.bracketFirstRound,
     bracketPace: f.bracketPace,
+    splitRule: f.splitRule,
   }
 }
 
@@ -153,6 +155,13 @@ export function SettingsTab({ view }: TabProps) {
           <select value={form.bracketPace} onChange={(e) => set('bracketPace', e.target.value as Form['bracketPace'])}>
             <option value="synchronized">Tours synchronisés (le tour suivant part quand le tour est fini)</option>
             <option value="asReady">Au fil de l’eau (un match part dès que ses deux équipes sont connues)</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Répartition proposée</span>
+          <select value={form.splitRule} onChange={(e) => set('splitRule', e.target.value as Form['splitRule'])}>
+            <option value="twoThirds">2/3 des équipes en Principal</option>
+            <option value="fullPrincipal">Principal plein : puissance de 2 la plus proche des 2/3 (48 → 32, 52 → 32)</option>
           </select>
         </label>
       </div>

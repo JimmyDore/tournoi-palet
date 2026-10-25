@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bracketsView, describeEvent, evolve, initialState, poolStandings, poolView, publicView, replay, seededRng, type Command } from './index.ts'
+import { bracketShape, bracketsView, describeEvent, evolve, initialState, poolStandings, poolView, publicView, replay, seededRng, type Command } from './index.ts'
 import { bracket, createEdition, poolsDone, run, type Harness } from './testing.ts'
 
 // Tableaux : répartition Principal / Consolante, génération et premier tour.
@@ -8,6 +8,38 @@ describe('répartition Principal / Consolante', () => {
   it('propose 2/3 des équipes en Principal à la fin des poules : 48 → 32 / 16', () => {
     const t = poolsDone(48)
     expect(bracketsView(t.state).split).toMatchObject({ ready: true, participants: 48, proposedPrincipal: 32, validatedPrincipal: null })
+  })
+
+  it('règle « Principal plein » : la puissance de 2 la plus proche des 2/3', () => {
+    for (const [count, principal] of [
+      [48, 32],
+      [40, 32],
+      [52, 32],
+      [64, 32],
+      [33, 16],
+    ]) {
+      const t = poolsDone(count, { splitRule: 'fullPrincipal' })
+      expect(bracketsView(t.state).split).toMatchObject({ rule: 'fullPrincipal', proposedPrincipal: principal })
+    }
+    // Les 2/3 restent la règle par défaut : 52 → 35.
+    expect(bracketsView(poolsDone(52).state).split).toMatchObject({ rule: 'twoThirds', proposedPrincipal: 35 })
+  })
+
+  it('la règle se change en cours de route ; la proposition reste ajustable', () => {
+    const t = poolsDone(52)
+    t.apply({ type: 'updateEdition', changes: { splitRule: 'fullPrincipal' } })
+    expect(bracketsView(t.state).split.proposedPrincipal).toBe(32)
+    t.apply(validate(30))
+    expect(bracketsView(t.state).split).toMatchObject({ proposedPrincipal: 32, validatedPrincipal: 30 })
+    expect(t.refusal({ type: 'updateEdition', changes: { splitRule: 'moitié' as never } })).toMatch(/règle de répartition/i)
+  })
+
+  it('décrit la forme de chaque tableau : taille, exempts, équipes du Challenge', () => {
+    // 52 équipes avec 2/3 : 35 en Principal (tableau de 64, 29 exempts, 3 vrais matchs → Challenge de 3), 17 en Consolante.
+    expect(bracketShape(35)).toEqual({ teams: 35, size: 64, byes: 29, challengeTeams: 3 })
+    expect(bracketShape(17)).toEqual({ teams: 17, size: 32, byes: 15, challengeTeams: 1 })
+    expect(bracketShape(32)).toEqual({ teams: 32, size: 32, byes: 0, challengeTeams: 16 })
+    expect(bracketShape(20)).toEqual({ teams: 20, size: 32, byes: 12, challengeTeams: 4 })
   })
 })
 

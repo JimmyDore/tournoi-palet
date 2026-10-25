@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { BRACKET_NAMES, BRACKET_ORDER, IMPACT_END, POOL_ROUNDS, bracketSize, challengeParent, ofBracket, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
+import { BRACKET_NAMES, BRACKET_ORDER, IMPACT_END, POOL_ROUNDS, bracketShape, bracketSize, challengeParent, ofBracket, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ordinal } from '../format.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
@@ -7,6 +7,7 @@ import { ClockControls } from './ClockControls.tsx'
 import { MatchList } from './PoolsTab.tsx'
 import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
+import { useRefusal } from './useRefusal.ts'
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`
 
@@ -49,7 +50,8 @@ export function BracketsTab({ view }: TabProps) {
   const [dirty, setDirty] = useState(false)
   const [confirmGenerate, setConfirmGenerate] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
-  const [refusal, setRefusal] = useState<string | null>(null)
+  const [refusal, setRefusal] = useRefusal(view)
+  const [splitRefusal, setSplitRefusal] = useRefusal(view)
   const [message, setMessage] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [forfeitId, setForfeitId] = useState('')
@@ -74,11 +76,12 @@ export function BracketsTab({ view }: TabProps) {
   const validate = async (event: FormEvent) => {
     event.preventDefault()
     const principalCount = count.trim() === '' ? NaN : Number(count.trim())
-    // Le succès se lit dans la ligne « Répartition validée ».
-    if (await send({ type: 'validateSplit', principalCount }, '')) {
-      setMessage(null)
-      setDirty(false)
-    }
+    const result = await sendCommand(view.id, { type: 'validateSplit', principalCount })
+    // Succès ou refus, le champ revient à la répartition en vigueur : l'écran ne montre jamais deux répartitions à la fois.
+    setDirty(false)
+    setCount(String(result.ok ? principalCount : current))
+    setMessage(null)
+    setSplitRefusal(result.ok ? null : `${result.reason} La répartition en vigueur reste ${current} en Principal.`)
   }
 
   const generate = async () => {
@@ -134,7 +137,16 @@ export function BracketsTab({ view }: TabProps) {
   }
 
   const typed = Number(count)
-  const preview = Number.isInteger(typed) && typed >= 0 && typed <= split.participants ? typed : null
+  const preview = count.trim() !== '' && Number.isInteger(typed) && typed >= 0 && typed <= split.participants ? typed : null
+  const validated = split.validatedPrincipal
+  /** Pourquoi « Générer » est grisé, ou `null`. */
+  const generateBlocked =
+    validated === null
+      ? 'Validez d’abord la répartition pour pouvoir générer les tableaux.'
+      : dirty
+        ? `Votre saisie (${count.trim() || 'vide'}) n’est pas validée : validez-la, ou annulez-la, pour générer les tableaux.`
+        : null
+  const rule = split.rule === 'fullPrincipal' ? 'Principal plein (la puissance de 2 la plus proche des 2/3)' : '2/3 en Principal'
 
   return (
     <div className="stack">
@@ -143,8 +155,8 @@ export function BracketsTab({ view }: TabProps) {
         <section className="panel">
           <h2>Répartition Principal / Consolante</h2>
           <p className="muted small">
-            {split.participants} équipes en jeu (forfaits de poule exclus). Proposition : 2/3 en Principal, soit <strong>{split.proposedPrincipal}</strong>. Les premières du
-            classement des poules vont en Principal, les suivantes en Consolante.
+            {split.participants} équipes en jeu (forfaits de poule exclus). Proposition ({rule}, réglable dans Réglages) : <strong>{split.proposedPrincipal}</strong> en
+            Principal. Les premières du classement des poules vont en Principal, les suivantes en Consolante.
           </p>
           <form className="split-form" onSubmit={(e) => void validate(e)} noValidate>
             <label className="field">
@@ -160,29 +172,36 @@ export function BracketsTab({ view }: TabProps) {
               />
             </label>
             <button type="submit" className="btn btn-primary">
-              {split.validatedPrincipal === null ? 'Valider la répartition' : 'Revalider la répartition'}
+              {validated === null ? 'Valider la répartition' : 'Revalider la répartition'}
             </button>
+            {dirty && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setDirty(false)
+                  setCount(String(current))
+                }}
+              >
+                Annuler la saisie
+              </button>
+            )}
           </form>
-          {preview !== null && (
-            <ul className="split-preview">
-              <li>
-                <strong>Principal</strong> : {sizeLine(preview)}
-              </li>
-              <li>
-                <strong>Consolante</strong> : {sizeLine(split.participants - preview)}
-              </li>
-            </ul>
+          {splitRefusal && (
+            <p className="refusal pool-feedback" role="alert">
+              {splitRefusal}
+            </p>
           )}
-          <p className={split.validatedPrincipal === null ? 'pool-missing' : 'success'}>
-            {split.validatedPrincipal === null
-              ? 'Répartition pas encore validée.'
-              : `Répartition validée : ${split.validatedPrincipal} en Principal, ${split.participants - split.validatedPrincipal} en Consolante.`}
+          {preview !== null && <SplitPreview principal={preview} consolante={split.participants - preview} pending={validated === null || dirty} />}
+          <p className={validated === null ? 'pool-missing' : 'success'}>
+            {validated === null ? 'Répartition pas encore validée.' : `Répartition validée : ${validated} en Principal, ${split.participants - validated} en Consolante.`}
           </p>
           <div className="actions">
-            <button type="button" className="btn btn-primary" disabled={split.validatedPrincipal === null || dirty} onClick={() => setConfirmGenerate(true)}>
+            <button type="button" className="btn btn-primary" disabled={generateBlocked !== null} onClick={() => setConfirmGenerate(true)}>
               Générer les tableaux
             </button>
           </div>
+          {generateBlocked && <p className="muted small">{generateBlocked}</p>}
           {feedback}
           {split.validatedPrincipal !== null && (
             <div className="split-lists">
@@ -327,6 +346,41 @@ function ImpactText({ warning }: { warning: string }) {
         </ul>
       )}
     </>
+  )
+}
+
+/** Aperçu de la répartition saisie : taille de chaque tableau, exempts et taille de son Challenge. */
+function SplitPreview({ principal, consolante, pending }: { principal: number; consolante: number; pending: boolean }) {
+  const rows = [
+    ['Principal', 'Challenge Principal', bracketShape(principal)],
+    ['Consolante', 'Challenge Consolante', bracketShape(consolante)],
+  ] as const
+  return (
+    <div className="split-preview" aria-label="Aperçu de la répartition">
+      <p className="small">
+        <strong>{pending ? 'Aperçu de la saisie (pas encore validée)' : 'Forme des tableaux'}</strong>
+      </p>
+      <ul>
+        {rows.map(([name, challenge, shape]) => (
+          <li key={name}>
+            <strong>{name}</strong> : {sizeLine(shape.teams)}
+            {shape.size >= 2 && (
+              <>
+                {' '}
+                · {plural(shape.size / 2 - shape.byes, 'vrai match')} au 1er tour · {challenge} :{' '}
+                {shape.challengeTeams === 0 ? (
+                  'aucune équipe'
+                ) : shape.challengeTeams === 1 ? (
+                  <span className="pool-missing">1 équipe, qui le gagne sans jouer</span>
+                ) : (
+                  plural(shape.challengeTeams, 'équipe')
+                )}
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

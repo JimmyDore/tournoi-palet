@@ -2,7 +2,7 @@ import { CHALLENGES, challengeEntrants } from './challenges.ts'
 import { cancelMatch, numberedBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
 import { POOL_ROUNDS, poolStandings, poolView } from './pool.ts'
 import { shuffle } from './rng.ts'
-import { MAX_SCORE } from './settings.ts'
+import { MAX_SCORE, type SplitRule } from './settings.ts'
 import { scoreProblem, type Score } from './score.ts'
 import type { EditionState } from './state.ts'
 import { teamName } from './teams.ts'
@@ -147,9 +147,33 @@ function bracketEntrants(state: EditionState): string[] {
     .map((s) => s.team.id)
 }
 
-/** Proposition par défaut : 2/3 des équipes en Principal, arrondi. */
-export function proposedPrincipal(participants: number): number {
-  return Math.round((participants * 2) / 3)
+/**
+ * Proposition de répartition. `twoThirds` : 2/3 des équipes en Principal,
+ * arrondi. `fullPrincipal` : la puissance de 2 la plus proche des 2/3 (la
+ * plus grande à égalité), pour un Principal sans exempt ; jamais au point de
+ * laisser moins de 2 équipes en Consolante.
+ */
+export function proposedPrincipal(participants: number, rule: SplitRule = 'twoThirds'): number {
+  const target = (participants * 2) / 3
+  if (rule === 'twoThirds') return Math.round(target)
+  const above = bracketSize(Math.ceil(target))
+  const below = Math.max(2, above / 2)
+  let best = above - target <= target - below ? above : below
+  while (best > 2 && participants - best < 2) best /= 2
+  return best
+}
+
+/** Forme d'un tableau de `teams` équipes : taille de la grille, exempts, et équipes de son Challenge (perdants des vrais matchs du 1er tour). */
+export interface BracketShape {
+  teams: number
+  size: number
+  byes: number
+  challengeTeams: number
+}
+
+export function bracketShape(teams: number): BracketShape {
+  const size = bracketSize(teams)
+  return { teams, size, byes: size - teams, challengeTeams: size < 2 ? 0 : teams - size / 2 }
 }
 
 function splitProblem(participants: number, principalCount: unknown): string | null {
@@ -584,6 +608,8 @@ export interface SplitView {
   ready: boolean
   /** Équipes qui entrent dans les tableaux (forfaits de poule exclus). */
   participants: number
+  /** Règle de la proposition (réglage de l'édition). */
+  rule: SplitRule
   proposedPrincipal: number
   validatedPrincipal: number | null
   /** Répartition en vigueur (validée, sinon proposée) : équipes dans l'ordre du classement des poules. */
@@ -615,12 +641,14 @@ export function bracketsView(state: EditionState): BracketsView {
   }
 
   const entrants = bracketEntrants(state)
-  const proposed = proposedPrincipal(entrants.length)
+  const rule = state.edition!.settings.splitRule
+  const proposed = proposedPrincipal(entrants.length, rule)
   const validated = state.brackets.principalCount
   const cut = validated ?? proposed
   const split: SplitView = {
     ready: poolsComplete(state),
     participants: entrants.length,
+    rule,
     proposedPrincipal: proposed,
     validatedPrincipal: validated,
     principal: entrants.slice(0, cut).map((id) => ref(id)!),
