@@ -25,9 +25,16 @@ export interface EditionSettings {
   isTest: boolean
   /** Premier tour des tableaux : têtes de série ou tirage au sort. */
   bracketFirstRound: BracketFirstRound
+  /**
+   * Rythme des tableaux : tours synchronisés (le tour suivant part quand le
+   * précédent est complet) ou au fil de l'eau (un match part dès que ses deux
+   * équipes sont connues).
+   */
+  bracketPace: BracketPace
 }
 
 export type BracketFirstRound = 'seeded' | 'random'
+export type BracketPace = 'synchronized' | 'asReady'
 
 export const MAX_TEAMS_LIMIT = 64
 export const MAX_SCORE = 13
@@ -44,6 +51,7 @@ export const DEFAULT_SETTINGS: Omit<EditionSettings, 'name' | 'date'> = {
   byeScore: { winner: 13, loser: 7 },
   isTest: false,
   bracketFirstRound: 'seeded',
+  bracketPace: 'synchronized',
 }
 
 export const SETTING_KEYS = [
@@ -60,6 +68,7 @@ export const SETTING_KEYS = [
   'byeScore',
   'isTest',
   'bracketFirstRound',
+  'bracketPace',
 ] as const satisfies readonly (keyof EditionSettings)[]
 
 export const SETTING_LABELS: Record<keyof EditionSettings, string> = {
@@ -76,6 +85,7 @@ export const SETTING_LABELS: Record<keyof EditionSettings, string> = {
   byeScore: "Score d'exempt",
   isTest: 'Édition de test',
   bracketFirstRound: '1er tour des tableaux',
+  bracketPace: 'Rythme des tableaux',
 }
 
 export function formatSetting<K extends keyof EditionSettings>(key: K, value: EditionSettings[K]): string {
@@ -92,6 +102,8 @@ export function formatSetting<K extends keyof EditionSettings>(key: K, value: Ed
       return value ? 'oui' : 'non'
     case 'bracketFirstRound':
       return value === 'random' ? 'tirage au sort' : 'têtes de série'
+    case 'bracketPace':
+      return value === 'asReady' ? 'au fil de l’eau' : 'tours synchronisés'
     default:
       return String(value) || '(vide)'
   }
@@ -140,6 +152,9 @@ export function settingsProblem(s: EditionSettings): string | null {
   if (typeof s.isTest !== 'boolean') return "L'indicateur « édition de test » doit être oui ou non."
   if (s.bracketFirstRound !== 'seeded' && s.bracketFirstRound !== 'random') {
     return 'Le premier tour des tableaux se fait par têtes de série ou par tirage au sort.'
+  }
+  if (s.bracketPace !== 'synchronized' && s.bracketPace !== 'asReady') {
+    return 'Le rythme des tableaux est « tours synchronisés » ou « au fil de l’eau ».'
   }
   return null
 }

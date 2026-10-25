@@ -1,4 +1,4 @@
-import { bracketLockProblem, decideBrackets, evolveBrackets, type BracketCommand, type BracketEvent } from './brackets.ts'
+import { bracketLockProblem, decideBrackets, evolveBrackets, settleBrackets, type BracketCommand, type BracketEvent } from './brackets.ts'
 import { decideEdition, evolveEdition, type EditionCommand, type EditionEvent } from './edition.ts'
 import { decideCheckIn, evolveCheckIn, type CheckInCommand, type CheckInEvent } from './checkin.ts'
 import { decideForfeit, evolveForfeit, type ForfeitCommand, type ForfeitEvent } from './forfeit.ts'
@@ -79,8 +79,12 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
 export function evolve(state: EditionState, event: Event): EditionState {
   switch (event.type) {
     case 'editionCreated':
-    case 'editionUpdated':
       return evolveEdition(state, event)
+    case 'editionUpdated': {
+      // Passer au fil de l'eau lance aussitôt les matchs prêts.
+      const updated = evolveEdition(state, event)
+      return event.changes.bracketPace ? settleBrackets(updated) : updated
+    }
     case 'teamRegistered':
     case 'teamUpdated':
     case 'teamWithdrawn':

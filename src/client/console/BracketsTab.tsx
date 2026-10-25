@@ -199,8 +199,11 @@ export function BracketsTab({ view }: TabProps) {
           <section className="panel">
             <h2>Tableaux</h2>
             <p className="muted small">
-              Premier tour {view.settings.bracketFirstRound === 'random' ? 'tiré au sort' : 'en têtes de série'}. Les vainqueurs avancent d’eux-mêmes ; quand un tour
-              est complet, le suivant est lancé sur les planches libres (les matchs sans planche la prennent dès qu’une se libère). Cliquez sur un match pour saisir
+              Premier tour {view.settings.bracketFirstRound === 'random' ? 'tiré au sort' : 'en têtes de série'}. Les vainqueurs avancent d’eux-mêmes ;{' '}
+              {view.settings.bracketPace === 'asReady'
+                ? 'au fil de l’eau : un match est lancé dès que ses deux équipes sont connues'
+                : 'tours synchronisés : quand un tour est complet, le suivant est lancé'}{' '}
+              sur les planches libres (les matchs sans planche la prennent dès qu’une se libère ; rythme réglable dans Réglages). Cliquez sur un match pour saisir
               ou corriger son score (Tab passe au second score, Entrée valide, Échap annule). Entre parenthèses : le rang au classement des poules.
             </p>
             <div className="actions">

@@ -93,7 +93,8 @@ export function evolveEdition(state: EditionState, event: EditionEvent): Edition
     case 'editionCreated':
       return {
         ...state,
-        edition: { id: event.editionId, settings: event.settings, previewToken: event.previewToken, createdAt: event.at },
+        // Les réglages ajoutés depuis la création d'une édition prennent leur valeur par défaut au rejeu.
+        edition: { id: event.editionId, settings: { ...DEFAULT_SETTINGS, ...event.settings }, previewToken: event.previewToken, createdAt: event.at },
       }
     case 'editionUpdated': {
       const edition = state.edition!

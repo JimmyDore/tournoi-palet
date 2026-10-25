@@ -20,6 +20,7 @@ describe('édition', () => {
       byeScore: { winner: 13, loser: 7 },
       isTest: false,
       bracketFirstRound: 'seeded',
+      bracketPace: 'synchronized',
     })
   })
 })

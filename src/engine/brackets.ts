@@ -273,7 +273,7 @@ export function evolveBrackets(state: EditionState, event: BracketEvent): Editio
     case 'bracketsGenerated': {
       // Tous les vrais matchs du 1er tour sont lancés : Principal puis Consolante, dans l'ordre de la grille.
       const generated = { ...state, brackets: { ...brackets, grids: { P: event.principal, C: event.consolante }, generatedAt: event.at } }
-      return launch(generated, synchronizedLaunches(generated))
+      return launch(generated, autoLaunches(generated))
     }
     case 'bracketScoreEntered': {
       const { matchId, scoreA, scoreB, teamA, teamB, at } = event
@@ -333,7 +333,7 @@ export function settleBrackets(state: EditionState): EditionState {
   }
   const settled = { ...state, brackets: { ...state.brackets, scores, boardLog: [...state.brackets.boardLog, ...resets, ...releases] } }
   const relaunched = launch(settled, relaunch)
-  return launch(relaunched, synchronizedLaunches(relaunched))
+  return launch(relaunched, autoLaunches(relaunched))
 }
 
 /**
@@ -511,6 +511,11 @@ function synchronizedLaunches(state: EditionState): string[] {
     const ready = first.round === 1 || (previous !== undefined && previous[0].bracket === first.bracket && roundComplete(previous))
     return ready ? matches.map((m) => m.id) : []
   })
+}
+
+/** Matchs lancés d'eux-mêmes, selon le rythme réglé : tours synchronisés, ou dès que les deux équipes sont connues. */
+function autoLaunches(state: EditionState): string[] {
+  return state.edition!.settings.bracketPace === 'asReady' ? readyMatches(state) : synchronizedLaunches(state)
 }
 
 /** Planches des tableaux, rejouées : la plus petite libre, sinon la file d'attente. */

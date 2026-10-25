@@ -85,6 +85,34 @@ describe('tours synchronisés', () => {
   })
 })
 
+describe('rythme « au fil de l’eau »', () => {
+  it('un match est lancé dès que ses deux équipes sont connues, sans attendre la fin du tour', () => {
+    const t = bracketsReady(48, { bracketPace: 'asReady' })
+    const first = round(t, 'P', 1)
+    win(t, first[0])
+    expect(round(t, 'P', 2)[0]).toMatchObject({ teamB: null, status: 'pending' })
+    win(t, first[1])
+    // Le 1er 1/8 a ses deux équipes : lancé sur la planche libérée la plus petite.
+    expect(round(t, 'P', 2)[0]).toMatchObject({ status: 'playing', board: 1 })
+    expect(round(t, 'P', 2)[1].status).toBe('pending')
+  })
+
+  it('passer au fil de l’eau en cours de tableau lance aussitôt les matchs prêts', () => {
+    const t = bracketsReady(48)
+    win(t, round(t, 'P', 1)[0])
+    win(t, round(t, 'P', 1)[1])
+    expect(round(t, 'P', 2)[0].status).toBe('pending')
+    t.apply({ type: 'updateEdition', changes: { bracketPace: 'asReady' } })
+    expect(round(t, 'P', 2)[0].status).toBe('playing')
+    expect(bracketsView(t.state).ready).toBe(0)
+  })
+
+  it('refuse un rythme inconnu', () => {
+    const t = bracketsReady(12)
+    expect(t.refusal({ type: 'updateEdition', changes: { bracketPace: 'vite' as never } })).toMatch(/rythme des tableaux/i)
+  })
+})
+
 describe('journal', () => {
   it('le score qui complète un tour annonce le lancement du suivant, et du Challenge', () => {
     const t = bracketsReady(12, { boards: 3 })

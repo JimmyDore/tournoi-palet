@@ -5,13 +5,15 @@ import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { PrizesEditor } from './PrizesEditor.tsx'
 import type { TabProps } from './tabs.tsx'
 
+/** Réglages choisis dans une liste ou par une case : gardés tels quels. */
+type Choices = Pick<EditionSettings, 'isTest' | 'bracketFirstRound' | 'bracketPace'>
+
 /** Le formulaire garde des chaînes ; le moteur valide et refuse au besoin. */
-type Form = Record<Exclude<keyof EditionSettings, 'byeScore' | 'isTest' | 'bracketFirstRound'>, string> & {
-  byeWinner: string
-  byeLoser: string
-  isTest: boolean
-  bracketFirstRound: EditionSettings['bracketFirstRound']
-}
+type Form = Record<Exclude<keyof EditionSettings, 'byeScore' | keyof Choices>, string> &
+  Choices & {
+    byeWinner: string
+    byeLoser: string
+  }
 
 function toForm(s: EditionSettings): Form {
   return {
@@ -29,6 +31,7 @@ function toForm(s: EditionSettings): Form {
     byeLoser: String(s.byeScore.loser),
     isTest: s.isTest,
     bracketFirstRound: s.bracketFirstRound,
+    bracketPace: s.bracketPace,
   }
 }
 
@@ -49,6 +52,7 @@ function toSettings(f: Form): EditionSettings {
     byeScore: { winner: num(f.byeWinner), loser: num(f.byeLoser) },
     isTest: f.isTest,
     bracketFirstRound: f.bracketFirstRound,
+    bracketPace: f.bracketPace,
   }
 }
 
@@ -142,6 +146,13 @@ export function SettingsTab({ view }: TabProps) {
           <select value={form.bracketFirstRound} onChange={(e) => set('bracketFirstRound', e.target.value as Form['bracketFirstRound'])}>
             <option value="seeded">Têtes de série</option>
             <option value="random">Tirage au sort</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Rythme des tableaux</span>
+          <select value={form.bracketPace} onChange={(e) => set('bracketPace', e.target.value as Form['bracketPace'])}>
+            <option value="synchronized">Tours synchronisés (le tour suivant part quand le tour est fini)</option>
+            <option value="asReady">Au fil de l’eau (un match part dès que ses deux équipes sont connues)</option>
           </select>
         </label>
       </div>
