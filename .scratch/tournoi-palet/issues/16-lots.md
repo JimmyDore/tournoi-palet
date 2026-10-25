@@ -4,9 +4,9 @@
 
 **Blocked by:** 13, 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Saisie des tranches avec validation (chevauchements signalés, places non couvertes indiquées)
-- [ ] Colonne lot dans le classement final de la console et du public
-- [ ] « Ton lot » sur le téléphone, affiché seulement quand la place est définitive
-- [ ] Déployé et vérifié en prod
+- [x] Saisie des tranches avec validation (chevauchements signalés, places non couvertes indiquées)
+- [x] Colonne lot dans le classement final de la console et du public
+- [x] « Ton lot » sur le téléphone, affiché seulement quand la place est définitive
+- [x] Déployé et vérifié en prod

@@ -4,10 +4,10 @@
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Lancement, arrêt et relance depuis la console
-- [ ] Le chrono est calé sur l'heure du serveur : télé et téléphones affichent le même temps, même après un rechargement
-- [ ] Alerte visuelle à 5 minutes, affichage en dépassement après zéro
-- [ ] Aucune action n'est bloquée par le chrono
-- [ ] Déployé et vérifié en prod
+- [x] Lancement, arrêt et relance depuis la console
+- [x] Le chrono est calé sur l'heure du serveur : télé et téléphones affichent le même temps, même après un rechargement
+- [x] Alerte visuelle à 5 minutes, affichage en dépassement après zéro
+- [x] Aucune action n'est bloquée par le chrono
+- [x] Déployé et vérifié en prod

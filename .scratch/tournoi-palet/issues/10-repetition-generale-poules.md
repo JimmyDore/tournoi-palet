@@ -4,9 +4,9 @@
 
 **Blocked by:** 06
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Génération de N équipes fictives, réservée aux éditions de test
-- [ ] Remplissage aléatoire des scores de la partie en cours, avec des scores valides et parfois des victoires à moins de 13
-- [ ] Test qui simule les 4 parties de poule pour 16, 33, 40, 48, 52 et 64 équipes, sans erreur et avec un classement cohérent
-- [ ] Déployé et vérifié en prod
+- [x] Génération de N équipes fictives, réservée aux éditions de test
+- [x] Remplissage aléatoire des scores de la partie en cours, avec des scores valides et parfois des victoires à moins de 13
+- [x] Test qui simule les 4 parties de poule pour 16, 33, 40, 48, 52 et 64 équipes, sans erreur et avec un classement cohérent
+- [x] Déployé et vérifié en prod

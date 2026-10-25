@@ -4,9 +4,9 @@
 
 **Blocked by:** 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Page publique d'une édition terminée : classement final et tableaux
-- [ ] Liste des éditions passées, triée par date
-- [ ] Éditions de test exclues partout côté public (test serveur)
-- [ ] Déployé et vérifié en prod
+- [x] Page publique d'une édition terminée : classement final et tableaux
+- [x] Liste des éditions passées, triée par date
+- [x] Éditions de test exclues partout côté public (test serveur)
+- [x] Déployé et vérifié en prod

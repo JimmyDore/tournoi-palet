@@ -4,11 +4,11 @@
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Les deux Challenges sont alimentés et se jouent jusqu'à leur finale
-- [ ] 48 équipes : places 1-16 Principal, 17-32 Challenge Principal, 33-40 Consolante, 41-48 Challenge Consolante (comme l'Excel 2025)
-- [ ] Départage des perdants d'un même tour testé (score de la défaite, puis classement des poules)
-- [ ] Tournoi simulé complet pour 16, 33, 40, 48, 52 et 64 équipes : classement de 1 à N sans trou ni doublon
-- [ ] Classement final visible dans la console
-- [ ] Déployé et vérifié en prod
+- [x] Les deux Challenges sont alimentés et se jouent jusqu'à leur finale
+- [x] 48 équipes : places 1-16 Principal, 17-32 Challenge Principal, 33-40 Consolante, 41-48 Challenge Consolante (comme l'Excel 2025)
+- [x] Départage des perdants d'un même tour testé (score de la défaite, puis classement des poules)
+- [x] Tournoi simulé complet pour 16, 33, 40, 48, 52 et 64 équipes : classement de 1 à N sans trou ni doublon
+- [x] Classement final visible dans la console
+- [x] Déployé et vérifié en prod

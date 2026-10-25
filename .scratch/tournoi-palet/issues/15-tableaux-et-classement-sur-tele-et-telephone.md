@@ -4,10 +4,10 @@
 
 **Blocked by:** 07, 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Vues tableaux et classement final dans la rotation de la télé, et bloquables
-- [ ] Tableaux de 32 lisibles sur la télé (découpage ou défilement si besoin)
-- [ ] « Mon équipe » suit l'équipe dans les tableaux, puis affiche sa place finale
-- [ ] Mise à jour en direct à chaque saisie
-- [ ] Déployé et vérifié en prod
+- [x] Vues tableaux et classement final dans la rotation de la télé, et bloquables
+- [x] Tableaux de 32 lisibles sur la télé (découpage ou défilement si besoin)
+- [x] « Mon équipe » suit l'équipe dans les tableaux, puis affiche sa place finale
+- [x] Mise à jour en direct à chaque saisie
+- [x] Déployé et vérifié en prod

@@ -4,11 +4,11 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Le moteur expose commandes et vues. Une commande invalide est refusée avec une raison lisible, affichée par la console
-- [ ] Console inaccessible sans mot de passe (test serveur)
-- [ ] Création et modification d'une édition, persistées et intactes après un redémarrage du serveur
-- [ ] La page publique montre les infos pratiques avec la charte CJVHB, et reste lisible sur téléphone
-- [ ] Une édition de test n'est jamais visible publiquement
-- [ ] Déployé et vérifié en prod
+- [x] Le moteur expose commandes et vues. Une commande invalide est refusée avec une raison lisible, affichée par la console
+- [x] Console inaccessible sans mot de passe (test serveur)
+- [x] Création et modification d'une édition, persistées et intactes après un redémarrage du serveur
+- [x] La page publique montre les infos pratiques avec la charte CJVHB, et reste lisible sur téléphone
+- [x] Une édition de test n'est jamais visible publiquement
+- [x] Déployé et vérifié en prod

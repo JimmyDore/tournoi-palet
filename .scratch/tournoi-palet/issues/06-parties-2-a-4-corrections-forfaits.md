@@ -4,12 +4,12 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] 48 équipes sur 4 parties : aucun adversaire revu, une seule apparition par partie (test moteur)
-- [ ] Nombre impair : un exempt différent à chaque partie, avec le bon score
-- [ ] Forfait en poule : plus tiré, adversaires gagnants 13-0
-- [ ] Correction de score : classement recalculé, sans aucune action de mise à jour
-- [ ] Retrait d'une partie lancée uniquement après confirmation
-- [ ] Journal consultable dans la console
-- [ ] Déployé et vérifié en prod
+- [x] 48 équipes sur 4 parties : aucun adversaire revu, une seule apparition par partie (test moteur)
+- [x] Nombre impair : un exempt différent à chaque partie, avec le bon score
+- [x] Forfait en poule : plus tiré, adversaires gagnants 13-0
+- [x] Correction de score : classement recalculé, sans aucune action de mise à jour
+- [x] Retrait d'une partie lancée uniquement après confirmation
+- [x] Journal consultable dans la console
+- [x] Déployé et vérifié en prod

@@ -4,10 +4,10 @@
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Impact d'une correction calculé par le moteur et affiché avant confirmation
-- [ ] Correction appliquée en cascade : les scores aval devenus invalides sont effacés, classement et tableaux restent cohérents (test moteur)
-- [ ] Forfait en tableau : l'adversaire avance, et le forfaité est classé à sa place d'élimination
-- [ ] « Lancer les matchs prêts » ne démarre que les matchs dont les deux équipes sont connues, avec attribution de planche
-- [ ] Déployé et vérifié en prod
+- [x] Impact d'une correction calculé par le moteur et affiché avant confirmation
+- [x] Correction appliquée en cascade : les scores aval devenus invalides sont effacés, classement et tableaux restent cohérents (test moteur)
+- [x] Forfait en tableau : l'adversaire avance, et le forfaité est classé à sa place d'élimination
+- [x] « Lancer les matchs prêts » ne démarre que les matchs dont les deux équipes sont connues, avec attribution de planche
+- [x] Déployé et vérifié en prod

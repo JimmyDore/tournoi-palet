@@ -4,11 +4,11 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Rotation automatique de la télé, et blocage d'une vue depuis la console
-- [ ] QR code permanent qui pointe vers le site public
-- [ ] Vue « mon équipe » sur téléphone, mémorisée après rechargement
-- [ ] Un score saisi en console apparaît sur la télé et le téléphone sans rechargement (test serveur bout en bout via WebSocket)
-- [ ] Lisible de loin sur la télé (grandes polices, fort contraste) et utilisable sur un petit écran de téléphone
-- [ ] Déployé et vérifié en prod
+- [x] Rotation automatique de la télé, et blocage d'une vue depuis la console
+- [x] QR code permanent qui pointe vers le site public
+- [x] Vue « mon équipe » sur téléphone, mémorisée après rechargement
+- [x] Un score saisi en console apparaît sur la télé et le téléphone sans rechargement (test serveur bout en bout via WebSocket)
+- [x] Lisible de loin sur la télé (grandes polices, fort contraste) et utilisable sur un petit écran de téléphone
+- [x] Déployé et vérifié en prod

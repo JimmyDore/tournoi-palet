@@ -4,11 +4,11 @@
 
 **Blocked by:** 06
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Répartition proposée, ajustable, validée explicitement
-- [ ] 48 équipes : Principal de 32 et Consolante de 16, sans exempt
-- [ ] 40 et 52 équipes : exempts attribués aux mieux classés de chaque tableau (tests moteur)
-- [ ] Méthode du premier tour réglable : têtes de série (1 et 2 ne peuvent se croiser qu'en finale) ou tirage au sort
-- [ ] Saisie d'un score de premier tour avec les mêmes règles qu'en poule
-- [ ] Déployé et vérifié en prod
+- [x] Répartition proposée, ajustable, validée explicitement
+- [x] 48 équipes : Principal de 32 et Consolante de 16, sans exempt
+- [x] 40 et 52 équipes : exempts attribués aux mieux classés de chaque tableau (tests moteur)
+- [x] Méthode du premier tour réglable : têtes de série (1 et 2 ne peuvent se croiser qu'en finale) ou tirage au sort
+- [x] Saisie d'un score de premier tour avec les mêmes règles qu'en poule
+- [x] Déployé et vérifié en prod

@@ -4,11 +4,11 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Tirage de la partie 1 : chaque équipe pointée joue une seule fois, planches de 1 à N/2 attribuées au hasard (hasard injecté, test reproductible)
-- [ ] Saisie d'un score avec validation, refus des scores invalides avec un message clair
-- [ ] Liste des matchs en attente de score
-- [ ] Classement des poules testé sur chacun de ses critères de départage
-- [ ] Renommer une équipe pendant la partie ne change aucun résultat (test moteur)
-- [ ] Déployé et vérifié en prod
+- [x] Tirage de la partie 1 : chaque équipe pointée joue une seule fois, planches de 1 à N/2 attribuées au hasard (hasard injecté, test reproductible)
+- [x] Saisie d'un score avec validation, refus des scores invalides avec un message clair
+- [x] Liste des matchs en attente de score
+- [x] Classement des poules testé sur chacun de ses critères de départage
+- [x] Renommer une équipe pendant la partie ne change aucun résultat (test moteur)
+- [x] Déployé et vérifié en prod

@@ -4,10 +4,10 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Pointer et dépointer une équipe en un clic, avec une recherche rapide par nom
-- [ ] Compteur des pointées et liste des manquantes
-- [ ] Remplacement d'un absent par la tête de la liste d'attente
-- [ ] Le moteur ne considère que les équipes pointées comme participantes (test moteur)
-- [ ] Déployé et vérifié en prod
+- [x] Pointer et dépointer une équipe en un clic, avec une recherche rapide par nom
+- [x] Compteur des pointées et liste des manquantes
+- [x] Remplacement d'un absent par la tête de la liste d'attente
+- [x] Le moteur ne considère que les équipes pointées comme participantes (test moteur)
+- [x] Déployé et vérifié en prod

@@ -4,9 +4,9 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Copie automatique déclenchée par la fin d'une partie de poule (et branchée sur les tours de tableau quand ils existeront)
-- [ ] Bouton d'export qui télécharge l'édition complète dans un fichier lisible
-- [ ] Redémarrage du serveur en plein tournoi sans aucune perte (test serveur)
-- [ ] Déployé et vérifié en prod
+- [x] Copie automatique déclenchée par la fin d'une partie de poule (et branchée sur les tours de tableau quand ils existeront)
+- [x] Bouton d'export qui télécharge l'édition complète dans un fichier lisible
+- [x] Redémarrage du serveur en plein tournoi sans aucune perte (test serveur)
+- [x] Déployé et vérifié en prod

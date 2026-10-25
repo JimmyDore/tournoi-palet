@@ -4,10 +4,10 @@
 
 **Blocked by:** 11
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Avancement automatique jusqu'au vainqueur de chaque tableau
-- [ ] Tours synchronisés : le tour N+1 démarre quand le tour N est complet
-- [ ] Attribution des planches libres, avec file « en attente » quand il en manque (test avec moins de planches que de matchs)
-- [ ] Le remplissage aléatoire de la répétition générale fonctionne sur les tours de tableau
-- [ ] Déployé et vérifié en prod
+- [x] Avancement automatique jusqu'au vainqueur de chaque tableau
+- [x] Tours synchronisés : le tour N+1 démarre quand le tour N est complet
+- [x] Attribution des planches libres, avec file « en attente » quand il en manque (test avec moins de planches que de matchs)
+- [x] Le remplissage aléatoire de la répétition générale fonctionne sur les tours de tableau
+- [x] Déployé et vérifié en prod

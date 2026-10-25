@@ -4,11 +4,11 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Inscription, modification, renommage, désinscription depuis la console
-- [ ] Nom par défaut généré à partir des joueurs
-- [ ] Alerte « deux licenciés » affichée, inscription quand même possible
-- [ ] Liste d'attente au-delà du plafond, avec promotion automatique au désistement (test moteur)
-- [ ] La page publique montre noms d'équipe et places restantes, sans téléphone, paiement, licence ni commentaire (test serveur)
-- [ ] Déployé et vérifié en prod
+- [x] Inscription, modification, renommage, désinscription depuis la console
+- [x] Nom par défaut généré à partir des joueurs
+- [x] Alerte « deux licenciés » affichée, inscription quand même possible
+- [x] Liste d'attente au-delà du plafond, avec promotion automatique au désistement (test moteur)
+- [x] La page publique montre noms d'équipe et places restantes, sans téléphone, paiement, licence ni commentaire (test serveur)
+- [x] Déployé et vérifié en prod
