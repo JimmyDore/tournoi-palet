@@ -138,6 +138,11 @@ describe('public', () => {
 
     expect((await api('GET', `/api/public/editions/${test.body.id}`)).status).toBe(404)
     expect((await api('GET', `/api/public/editions/${test.body.id}?k=mauvais`)).status).toBe(404)
+    // Même réponse qu'une édition inconnue, en public comme en console.
+    const hidden = await api('GET', `/api/public/editions/${test.body.id}`)
+    expect(hidden.body).toEqual({ ok: false, reason: "Cette édition n'existe pas." })
+    expect((await api('GET', '/api/public/editions/inconnue')).body).toEqual(hidden.body)
+    expect((await api('GET', '/api/admin/editions/inconnue', cookie)).body).toEqual(hidden.body)
     const preview = await api('GET', `/api/public/editions/${test.body.id}?k=${token}`)
     expect(preview.body).toMatchObject({ name: 'Répétition', isTest: true })
   })

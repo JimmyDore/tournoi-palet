@@ -1,9 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import { adminView, exportView, type Command, type EditionSettings } from '../engine/index.ts'
 import type { Applied } from './editions.ts'
-import type { ServerContext } from './context.ts'
-
-const NOT_FOUND = { ok: false, reason: "Cette édition n'existe pas." }
+import { NOT_FOUND, type ServerContext } from './context.ts'
 
 /** Connexion et API de la console. Tout `/api/admin/*` exige une session. */
 export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): void {

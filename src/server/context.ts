@@ -44,6 +44,9 @@ export function createServerContext(store: EditionStore, hub: Hub, auth: Auth, b
   }
 }
 
+/** Réponse 404 de toutes les routes : une édition inconnue ou cachée (test sans jeton) se ressemblent. */
+export const NOT_FOUND = { ok: false, reason: "Cette édition n'existe pas." } as const
+
 /**
  * Une édition est-elle visible côté public avec ce jeton ? Une édition de
  * test ne l'est qu'avec son `previewToken` (`?k=`), sinon on fait comme si

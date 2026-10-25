@@ -1,8 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { currentEdition, palmares, publicView } from '../engine/index.ts'
-import { publiclyVisible, type ServerContext } from './context.ts'
-
-const NOT_FOUND = { error: 'not_found' }
+import { NOT_FOUND, publiclyVisible, type ServerContext } from './context.ts'
 
 /** Lecture publique : uniquement des `publicView`, jamais d'édition de test sans son jeton. */
 export function registerPublicRoutes(app: FastifyInstance, { store }: ServerContext): void {
