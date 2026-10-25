@@ -54,8 +54,11 @@ function useLive<T>(subscription: Record<string, unknown> | null): Live<T> {
           setLive({ view: null, status: msg.reason === 'unauthorized' ? 'unauthorized' : 'not-found' })
         }
       }
+      // Une erreur ferme le socket avant toute reconnexion : jamais deux sockets ouverts pour un même abonnement.
+      const socket = ws
+      ws.onerror = () => socket.close()
       ws.onclose = () => {
-        if (stopped) return
+        if (stopped || ws !== socket) return
         setLive((prev) => ({ ...prev, status: 'offline' }))
         timer = setTimeout(connect, RETRY_MS[Math.min(attempt++, RETRY_MS.length - 1)])
       }
