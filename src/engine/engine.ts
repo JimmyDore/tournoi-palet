@@ -67,8 +67,12 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'fillRandomScores':
       // Produit des événements ordinaires : rien à ajouter dans `evolve`.
       return decideRehearsal(state, command, ctx, { decide, evolve })
-    default:
-      return refuse(`Commande inconnue : ${String((command as { type?: unknown }).type)}.`)
+    default: {
+      // Une commande de l'union sans `case` casse le typecheck ; une commande
+      // inconnue venue du réseau est refusée.
+      const unknown: never = command
+      return refuse(`Commande inconnue : ${String((unknown as { type?: unknown }).type)}.`)
+    }
   }
 }
 
