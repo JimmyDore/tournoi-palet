@@ -255,6 +255,7 @@ describe('classement des poules', () => {
         pointsAgainst: 0,
         diff: 0,
         forfeit: false,
+        forfeitCancellable: false,
       })),
     )
   })
@@ -309,6 +310,8 @@ describe('après le lancement de la partie 1', () => {
   it('laisse désinscrire une équipe absente qui n’a pas été tirée, et renommer', () => {
     const t = run([createEdition(), ...['A', 'B', 'C'].map((l) => register(`${l}1`, `${l}2`))])
     t.apply({ type: 'checkInTeam', teamId: 't1' }).apply({ type: 'checkInTeam', teamId: 't2' }).apply(draw)
+    const canWithdraw = () => Object.fromEntries(adminView(t.state).teams.map((team) => [team.id, team.canWithdraw]))
+    expect(canWithdraw()).toEqual({ t1: false, t2: false, t3: true })
     t.apply({ type: 'withdrawTeam', teamId: 't3' })
     t.apply({ type: 'updateTeam', teamId: 't1', changes: { name: 'Nouveau nom' } })
   })

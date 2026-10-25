@@ -174,7 +174,10 @@ describe('forfait en poule', () => {
     t.apply(forfeit('t1')).apply({ type: 'cancelForfeit', teamId: 't1' })
     expect(poolView(t.state)).toEqual(before)
     t.apply(forfeit('t1'))
+    const cancellable = () => poolView(t.state).standings.find((s) => s.team.id === 't1')!.forfeitCancellable
+    expect(cancellable()).toBe(true)
     finishRound(t).apply(draw(2))
+    expect(cancellable()).toBe(false)
     expect(t.refusal({ type: 'cancelForfeit', teamId: 't1' })).toBe('La partie 2 a été tirée sans « J1a & J1b » : son forfait ne peut plus être annulé.')
     expect(t.refusal({ type: 'cancelForfeit', teamId: 't2' })).toBe('« J2a & J2b » n’est pas déclarée forfait.')
   })
@@ -202,6 +205,11 @@ describe('retrait de la dernière partie', () => {
     const warning = 'Retirer la partie 2 efface son tirage (2 matchs et l’exempt) et 1 score saisi. Confirmez pour la retirer.'
     expect(t.refusal(remove(2))).toBe(warning)
     expect(t.refusal(remove(2, false))).toBe(warning)
+  })
+
+  it('dit clairement quand aucun score n’a encore été saisi', () => {
+    const t = play(checkedIn(5), 1).apply(draw(2))
+    expect(t.refusal(remove(2))).toBe('Retirer la partie 2 efface son tirage (2 matchs et l’exempt) ; aucun score n’a encore été saisi. Confirmez pour la retirer.')
   })
 
   it('n’accepte que la dernière partie', () => {

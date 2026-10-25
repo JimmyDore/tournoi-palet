@@ -156,9 +156,9 @@ export function decidePool(state: EditionState, command: PoolCommand, ctx: Ctx):
 /** Ce que le retrait d'une partie efface, dit avant de confirmer. */
 export function removalWarning(state: EditionState, round: PoolRound): string {
   const entered = round.matches.filter((m) => m.id in state.pool.scores).length
-  const scores = entered === 0 ? 'aucun score saisi' : `${entered} score${entered > 1 ? 's' : ''} saisi${entered > 1 ? 's' : ''}`
+  const scores = entered === 0 ? ' ; aucun score n’a encore été saisi' : ` et ${entered} score${entered > 1 ? 's' : ''} saisi${entered > 1 ? 's' : ''}`
   const count = round.matches.length
-  return `Retirer la partie ${round.round} efface son tirage (${count} match${count > 1 ? 's' : ''}${round.bye ? ' et l’exempt' : ''}) et ${scores}. Confirmez pour la retirer.`
+  return `Retirer la partie ${round.round} efface son tirage (${count} match${count > 1 ? 's' : ''}${round.bye ? ' et l’exempt' : ''})${scores}. Confirmez pour la retirer.`
 }
 
 export function evolvePool(state: EditionState, event: PoolEvent): EditionState {
@@ -331,6 +331,8 @@ export interface PoolStanding {
   diff: number
   /** Déclarée forfait : classée après toutes les autres. */
   forfeit: boolean
+  /** Forfait encore annulable : aucune partie tirée sans elle, tableaux pas générés. */
+  forfeitCancellable: boolean
 }
 
 /** Poules, publiques telles quelles : seulement des noms d'équipe et des scores. */
@@ -415,7 +417,12 @@ export function poolStandings(state: EditionState): PoolStanding[] {
     if (r.bye) add(r.bye, bye.winner, bye.loser)
   }
   return [...rows.values()]
-    .map((row) => ({ ...row, diff: row.pointsFor - row.pointsAgainst, forfeit: state.forfeits[row.team.id]?.inBrackets === false }))
+    .map((row) => {
+      const f = state.forfeits[row.team.id]
+      const forfeit = f?.inBrackets === false
+      const forfeitCancellable = forfeit && !state.brackets.grids && state.pool.rounds.length <= f.afterRound
+      return { ...row, diff: row.pointsFor - row.pointsAgainst, forfeit, forfeitCancellable }
+    })
     .sort((x, y) => Number(x.forfeit) - Number(y.forfeit) || y.wins - x.wins || y.pointsFor - x.pointsFor || y.diff - x.diff || x.pointsAgainst - y.pointsAgainst || x.index - y.index)
     .map(({ index: _index, ...row }, i) => ({ rank: i + 1, ...row }))
 }

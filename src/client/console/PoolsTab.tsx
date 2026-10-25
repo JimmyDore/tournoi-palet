@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { POOL_ROUNDS, type PoolMatchView, type Score, type PoolRoundView, type PoolStanding, type TeamRef } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
+import { useRefusal } from './useRefusal.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { ClockControls } from './ClockControls.tsx'
 import { RehearsalPanel } from './RehearsalPanel.tsx'
@@ -36,7 +37,7 @@ export function PoolsTab({ view }: TabProps) {
   const [shownRound, setShownRound] = useState<number | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
-  const [refusal, setRefusal] = useState<string | null>(null)
+  const [refusal, setRefusal] = useRefusal(view)
   const [message, setMessage] = useState<string | null>(null)
 
   // Partie affichée : celle choisie, sinon la dernière lancée.
@@ -110,10 +111,11 @@ export function PoolsTab({ view }: TabProps) {
         )}
         <div className="actions">
           {(!current || (current.complete && nextRound <= POOL_ROUNDS)) && (
-            <button type="button" className="btn btn-primary" onClick={() => setDialog({ kind: 'launch' })}>
+            <button type="button" className="btn btn-primary" disabled={inPlay < 2} onClick={() => setDialog({ kind: 'launch' })}>
               Lancer la partie {nextRound}
             </button>
           )}
+          {!current && inPlay < 2 && <p className="muted small">Il faut au moins 2 équipes pointées pour lancer la partie 1 (onglet Pointage).</p>}
           {current?.complete && nextRound > POOL_ROUNDS && <p className="success">Les {POOL_ROUNDS} parties de poule sont terminées.</p>}
           {current?.complete && nextRound > POOL_ROUNDS && view.brackets.generated && <p className="muted">Les tableaux sont générés : les poules sont closes.</p>}
           {current && !view.brackets.generated && (
@@ -457,9 +459,11 @@ function Standings({
                 <td>{s.diff > 0 ? `+${s.diff}` : s.diff}</td>
                 <td>
                   {s.forfeit ? (
-                    <button type="button" className="btn btn-small" onClick={() => onCancelForfeit(s.team)} aria-label={`Annuler le forfait de ${s.team.name}`}>
-                      Annuler
-                    </button>
+                    s.forfeitCancellable && (
+                      <button type="button" className="btn btn-small" onClick={() => onCancelForfeit(s.team)} aria-label={`Annuler le forfait de ${s.team.name}`}>
+                        Annuler
+                      </button>
+                    )
                   ) : (
                     <button type="button" className="btn btn-small btn-danger-outline" onClick={() => onForfeit(s.team)} aria-label={`Déclarer ${s.team.name} forfait`}>
                       Forfait

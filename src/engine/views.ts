@@ -3,7 +3,7 @@ import type { EditionSettings } from './settings.ts'
 import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
-import { poolView, type PoolStanding, type PoolView } from './pool.ts'
+import { poolLockProblem, poolView, type PoolStanding, type PoolView } from './pool.ts'
 import type { TeamRef } from './types.ts'
 import { prizesView, type PrizesView } from './prizes.ts'
 import { finalRanking, type FinalRanking } from './ranking.ts'
@@ -119,6 +119,8 @@ export interface AdminTeam extends Omit<TeamFields, 'name'> {
   checkedInAt: number | null
   /** Alertes non bloquantes (ex. deux licenciés). */
   warnings: string[]
+  /** Peut encore être désinscrite (pas tirée en poule). */
+  canWithdraw: boolean
 }
 
 /** Vue console : tout, y compris les données privées. */
@@ -159,6 +161,7 @@ export function adminView(state: EditionState): AdminView {
       status,
       waitlistPosition: status === 'waitlist' ? waitlist.findIndex((w) => w.id === team.id) + 1 : null,
       warnings: teamWarnings(team),
+      canWithdraw: poolLockProblem(state, { type: 'withdrawTeam', teamId: team.id }) === null,
     }
   })
   return {

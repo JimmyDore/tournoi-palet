@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { teamName, teamWarnings, type AdminTeam, type TeamFields } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
+import { useRefusal } from './useRefusal.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import type { TabProps } from './tabs.tsx'
 
@@ -15,7 +16,7 @@ function fieldsOf(team: AdminTeam): TeamFields {
 export function TeamsTab({ view }: TabProps) {
   const [editing, setEditing] = useState<string | null>(null)
   const [withdrawing, setWithdrawing] = useState<AdminTeam | null>(null)
-  const [refusal, setRefusal] = useState<string | null>(null)
+  const [refusal, setRefusal] = useRefusal(view)
   const [message, setMessage] = useState<string | null>(null)
 
   const registered = view.teams.filter((t) => t.status === 'registered')
@@ -173,9 +174,11 @@ function TeamList({
                   <button type="button" className="btn btn-small" onClick={() => onEdit(team.id)}>
                     Modifier
                   </button>
-                  <button type="button" className="btn btn-small btn-danger-outline" onClick={() => onWithdraw(team)}>
-                    Désinscrire
-                  </button>
+                  {team.canWithdraw && (
+                    <button type="button" className="btn btn-small btn-danger-outline" onClick={() => onWithdraw(team)}>
+                      Désinscrire
+                    </button>
+                  )}
                 </div>
               </>
             )}
