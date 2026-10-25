@@ -197,7 +197,8 @@ function TvTree({ bracket, page }: { bracket: BracketView; page: TreePage }) {
           style={{ gridTemplateColumns: page.columns.map((c) => (c.matches.some((m) => m.teamA || m.teamB) ? 'minmax(0, 2.2fr)' : 'minmax(0, 1fr)')).join(' ') }}
         >
           {page.columns.map(({ round, matches }) => (
-            <section key={round.round} className="tv-tree-col" aria-label={round.name}>
+            // Une colonne peu chargée (4 matchs ou moins) laisse les noms passer sur deux lignes plutôt que de les couper.
+            <section key={round.round} className={`tv-tree-col${matches.length <= 4 ? ' tv-tree-col-roomy' : ''}`} aria-label={round.name}>
               <h2 className="tv-tree-round">{round.name}</h2>
               <ol className="tv-tree-matches">
                 {matches.map((m) => (
@@ -217,7 +218,9 @@ function TvTreeMatch({ match }: { match: BracketMatchView }) {
   const winner = score ? (score.a > score.b ? 'a' : 'b') : match.status === 'bye' ? (match.teamA ? 'a' : 'b') : null
   const side = (team: BracketMatchView['teamA'], key: 'a' | 'b', points: number | undefined) => (
     <span className={`tv-tree-team${winner === key ? ' tv-winner' : winner ? ' tv-loser' : ''}`}>
-      <span className="tv-tree-name">{team ? team.name : match.status === 'bye' ? 'exempt' : '…'}</span>
+      <span className="tv-tree-name" title={team?.name}>
+        {team ? team.name : match.status === 'bye' ? 'exempt' : '…'}
+      </span>
       {points !== undefined && <span className="tv-tree-score">{points}</span>}
     </span>
   )

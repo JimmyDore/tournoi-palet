@@ -600,6 +600,16 @@
   white-space: nowrap;
 }
 
+/* Colonne peu chargée : le nom entier, sur deux lignes au besoin. */
+.tv-tree-col-roomy .tv-tree-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
 .tv-tree-score {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
