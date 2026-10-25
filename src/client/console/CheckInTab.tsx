@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { AdminTeam } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
+import { useRefusal } from './useRefusal.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { formatPrice } from '../format.ts'
 import type { TabProps } from './tabs.tsx'
@@ -30,7 +31,7 @@ const hourFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '
 export function CheckInTab({ view }: TabProps) {
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
-  const [refusal, setRefusal] = useState<string | null>(null)
+  const [refusal, setRefusal] = useRefusal(view)
   const [message, setMessage] = useState<string | null>(null)
   const [replacing, setReplacing] = useState<AdminTeam | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)

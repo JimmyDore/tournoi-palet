@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { AdminView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
+import { useRefusal } from './useRefusal.ts'
 import { ClockDisplay } from '../components/Clock.tsx'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 
@@ -13,7 +14,7 @@ export function ClockControls({ view }: { view: AdminView }) {
   const running = clock !== null && clock.stoppedAt === null
   const [minutes, setMinutes] = useState('')
   const [confirmRestart, setConfirmRestart] = useState(false)
-  const [refusal, setRefusal] = useState<string | null>(null)
+  const [refusal, setRefusal] = useRefusal(view)
   const duration = minutes.trim() === '' ? view.settings.gameMinutes : Number(minutes.trim().replace(',', '.'))
 
   const send = async (command: Parameters<typeof sendCommand>[1]) => {

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { MAX_TEAMS_LIMIT, type AdminView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
+import { useRefusal } from './useRefusal.ts'
 
 /**
  * Panneau « Répétition générale », affiché seulement sur une édition de test :
@@ -10,7 +11,7 @@ import { sendCommand } from '../api.ts'
 export function RehearsalPanel({ view }: { view: AdminView }) {
   const [count, setCount] = useState('32')
   const [busy, setBusy] = useState(false)
-  const [refusal, setRefusal] = useState<string | null>(null)
+  const [refusal, setRefusal] = useRefusal(view)
   const [message, setMessage] = useState<string | null>(null)
 
   if (!view.settings.isTest) return null
