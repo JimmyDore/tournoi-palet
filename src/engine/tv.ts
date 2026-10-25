@@ -27,7 +27,8 @@ export const bracketScreen = (key: BracketKey) => `bracket-${key}` as const sati
 /**
  * Vues qui défilent : la vue bloquée seule, sinon celles qui comptent à ce
  * moment du tournoi. Poules : matchs et classement des poules. Tableaux :
- * matchs en cours, tableaux formés, classement provisoire. Après les
+ * matchs en cours, classement des poules (US 52), tableaux formés,
+ * classement provisoire. Après les
  * finales : classement final, puis les tableaux. Rien avant le tirage.
  */
 export function tvRotation(view: PublicView): TvScreen[] {
@@ -37,7 +38,7 @@ export function tvRotation(view: PublicView): TvScreen[] {
   if (!brackets.generated) return ['matches', 'standings']
   const trees = brackets.brackets.map((b) => bracketScreen(b.key))
   if (view.phase === 'after') return ['ranking', ...trees]
-  return [...(brackets.live.length > 0 ? (['matches'] as const) : []), ...trees, 'ranking']
+  return [...(brackets.live.length > 0 ? (['matches'] as const) : []), 'standings', ...trees, 'ranking']
 }
 
 export interface TvState {

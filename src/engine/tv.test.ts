@@ -74,12 +74,12 @@ describe('rotation automatique de la télé, selon le moment du tournoi', () => 
     expect(tvRotation(publicView(checkedIn(4).apply(draw).state))).toEqual(['matches', 'standings'])
   })
 
-  it('tableaux : matchs en cours, les tableaux formés et le classement provisoire', () => {
+  it('tableaux : matchs en cours, classement des poules, les tableaux formés et le classement provisoire', () => {
     const t = bracketsReady(48, { isTest: true })
-    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'bracket-P', 'bracket-C', 'ranking'])
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'standings', 'bracket-P', 'bracket-C', 'ranking'])
     // Le 1er tour joué : les Challenges sont formés.
     t.apply({ type: 'fillRandomScores' })
-    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'bracket-P', 'bracket-CP', 'bracket-C', 'bracket-CC', 'ranking'])
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'standings', 'bracket-P', 'bracket-CP', 'bracket-C', 'bracket-CC', 'ranking'])
   })
 
   it('après les finales : classement final puis les tableaux', () => {
