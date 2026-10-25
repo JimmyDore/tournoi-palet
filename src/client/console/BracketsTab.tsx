@@ -484,6 +484,17 @@ function TreeMatch({ match: m }: { match: BracketMatchView }) {
   )
 }
 
+/** « 1 lancé sans score, 3 à venir » : les matchs lancés à saisir, à part de ceux pas encore lancés. */
+function missingLine(real: readonly BracketMatchView[]): string {
+  const launched = real.filter((m) => m.status === 'playing' || m.status === 'waiting-board').length
+  const pending = real.filter((m) => m.status === 'pending').length
+  const parts = [
+    launched > 0 && `${launched} lancé${launched > 1 ? 's' : ''} sans score`,
+    pending > 0 && `${pending} à venir`,
+  ].filter(Boolean)
+  return parts.join(', ')
+}
+
 /** Saisie des scores d'un tour lancé ; un tour terminé se replie (on le rouvre pour corriger). */
 function RoundScores({
   round,
@@ -511,7 +522,7 @@ function RoundScores({
   return (
     <div className="bracket-round">
       <h3 className="pool-subtitle">
-        {round.name} : {missing ? `${missing} / ${real.length} sans score` : 'tous les scores sont saisis'}
+        {round.name} : {missing ? missingLine(real) : 'tous les scores sont saisis'}
         {missing === 0 && (
           <button type="button" className="btn btn-small" onClick={() => setOpen(!shownOpen)} aria-expanded={shownOpen}>
             {shownOpen ? 'Replier' : 'Voir ou corriger'}
