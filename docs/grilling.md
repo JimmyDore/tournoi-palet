@@ -73,3 +73,7 @@ Rappel de l'affiche 2025 : 20 décembre, arrivée 13h, début 14h, salle Arc-en-
 | 11 | Vote déguisements | Les organisateurs votent ; Jean aime l'idée d'un vote public, il demande | En attente, ne rien coder |
 
 Encore à faire trancher par Jean : une équipe forfait en poule va-t-elle en tableau ? Aujourd'hui non, elle finit dernière (`docs/decisions-nuit.md`, décision 06).
+
+### Caution des palets (grilling du 2026-10-25)
+
+Une caution de 2 € par équipe, facultative. Le prêt se coche dans l'onglet Pointage, indépendamment du pointage. En fin de journée, un filtre « Palets à rendre », un bouton « Rendu » annulable et un compteur prêtés / rendus / à rendre. Console seulement. Un jeu jamais rendu reste « non rendu ». Journal et export. Ticket 19.
