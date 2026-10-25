@@ -1,5 +1,5 @@
 import type { FinalRankingRow } from '../../engine/index.ts'
-import { rankingStage } from '../format.ts'
+import { ordinal, rankingStage } from '../format.ts'
 import type { TabProps } from './tabs.tsx'
 
 /**
@@ -79,7 +79,7 @@ export function RankingTab({ view }: TabProps) {
                     </td>
                     <td className="left">{row.team.name}</td>
                     <td className="left">{rankingStage(row)}</td>
-                    <td className="ranking-pool">{row.poolRank}e</td>
+                    <td className="ranking-pool">{ordinal(row.poolRank)}</td>
                     <td className="left">
                       {row.definitive ? <span className="badge badge-final">définitive</span> : <span className="badge badge-wait">provisoire</span>}
                     </td>
