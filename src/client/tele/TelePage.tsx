@@ -45,6 +45,10 @@ function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null;
   const url = publicPageUrl(view.id, view.isTest ? k : null)
   const round = view.pool.rounds.at(-1)
   const scored = round ? round.matches.length - round.awaitingScore.length : 0
+  // « En cours » : seulement les matchs sur une planche ; ceux qui attendent une planche sont comptés à part.
+  const playing = view.brackets.live.filter((m) => m.status === 'playing').length
+  const waiting = view.brackets.live.length - playing
+  const done = view.phase === 'after'
 
   return (
     <div className="tv">
@@ -73,12 +77,13 @@ function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null;
         <p className="tv-edition">{view.name}</p>
         {view.brackets.generated ? (
           <p className="tv-round">
-            {view.phase === 'after' ? 'Tournoi terminé' : 'Tableaux'}
-            {view.phase !== 'after' && (
+            {done ? 'Tournoi terminé' : 'Tableaux'}
+            {!done && (
               <span>
-                {view.brackets.live.length} match{view.brackets.live.length > 1 ? 's' : ''} en cours
+                {playing} match{playing > 1 ? 's' : ''} en cours
               </span>
             )}
+            {!done && waiting > 0 && <span className="tv-round-waiting">{waiting} en attente de planche</span>}
           </p>
         ) : round && (
           <p className="tv-round">
@@ -88,7 +93,8 @@ function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null;
             </span>
           </p>
         )}
-        <div className="tv-clock-slot">{view.clock && <ClockDisplay clock={view.clock} className="clock-tv" />}</div>
+        {/* Tournoi terminé : plus de chrono (comme sur le téléphone). */}
+        <div className="tv-clock-slot">{view.clock && !done && <ClockDisplay clock={view.clock} className="clock-tv" />}</div>
         <div className="tv-qr-block">
           <QrCode url={url} className="tv-qr" />
           <p className="tv-qr-caption">Suivez le tournoi et votre équipe sur votre téléphone</p>
