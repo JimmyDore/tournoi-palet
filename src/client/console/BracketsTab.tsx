@@ -367,7 +367,7 @@ function SplitPreview({ principal, consolante, pending }: { principal: number; c
             {shape.size >= 2 && (
               <>
                 {' '}
-                · {plural(shape.size / 2 - shape.byes, 'vrai match')} au 1er tour · {challenge} :{' '}
+                · {shape.size / 2 - shape.byes} vrai{shape.size / 2 - shape.byes > 1 ? 's' : ''} match{shape.size / 2 - shape.byes > 1 ? 's' : ''} au 1er tour · {challenge} :{' '}
                 {shape.challengeTeams === 0 ? (
                   'aucune équipe'
                 ) : shape.challengeTeams === 1 ? (

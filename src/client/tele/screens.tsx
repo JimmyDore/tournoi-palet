@@ -194,7 +194,8 @@ function TvTree({ bracket, page }: { bracket: BracketView; page: TreePage }) {
         // Les tours dont aucune équipe n'est connue sont plus étroits : les noms des tours joués restent entiers.
         <div
           className={`tv-tree tv-tree-${Math.min(page.columns.length, 5)}`}
-          style={{ gridTemplateColumns: page.columns.map((c) => (c.matches.some((m) => m.teamA || m.teamB) ? 'minmax(0, 2.2fr)' : 'minmax(0, 1fr)')).join(' ') }}
+          // Une colonne chargée (plus de 4 matchs) ne peut pas passer à la ligne : elle prend plus de largeur.
+          style={{ gridTemplateColumns: page.columns.map((c) => (!c.matches.some((m) => m.teamA || m.teamB) ? 'minmax(0, 1fr)' : c.matches.length > 4 ? 'minmax(0, 2.8fr)' : 'minmax(0, 2.2fr)')).join(' ') }}
         >
           {page.columns.map(({ round, matches }) => (
             // Une colonne peu chargée (4 matchs ou moins) laisse les noms passer sur deux lignes plutôt que de les couper.
