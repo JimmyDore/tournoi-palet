@@ -22,7 +22,7 @@ export function Winners({ view }: { view: PublicView }) {
   )
 }
 
-/** Classement final de 1 à N (téléphone), par blocs ; la colonne Lot n'apparaît que si un lot est renseigné. */
+/** Classement final de 1 à N (téléphone), par blocs ; la colonne Lot n’apparaît que si un lot est renseigné, et le lot seulement sur une place définitive. */
 export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: string | null }) {
   const rows = view.ranking.rows
   if (rows.length === 0) return null
@@ -56,7 +56,7 @@ export function FinalRankingCard({ view, teamId }: { view: PublicView; teamId: s
                   {row.team.name}
                   <span className="results-stage">{rankingStage(row)}</span>
                 </td>
-                {withLots && <td className="name results-lot">{row.prize ?? ''}</td>}
+                {withLots && <td className="name results-lot">{(row.definitive && row.prize) || ''}</td>}
               </tr>,
             ]
           })}
