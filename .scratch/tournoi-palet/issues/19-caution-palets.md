@@ -19,4 +19,4 @@
 - [x] Le compteur et le filtre « Palets à rendre » sont justes
 - [x] Rien n'apparaît dans les vues publiques
 - [x] Journal et export à jour
-- [ ] Déployé et vérifié en prod
+- [x] Déployé et vérifié en prod
