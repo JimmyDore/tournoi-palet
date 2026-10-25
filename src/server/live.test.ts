@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { PublicView } from '../engine/index.ts'
 import { buildApp } from './app.ts'
 
@@ -133,5 +133,90 @@ describe('direct télé et téléphone', () => {
     expect(serverNow).toBeGreaterThanOrEqual(view.clock!.startedAt)
     expect(serverNow).toBeLessThanOrEqual(Date.now())
     tele.ws.close()
+  })
+})
+
+/** Socket quelconque : collecte tous les messages (vues et erreurs) et sa fermeture. */
+function listen(message: object, withCookie?: string) {
+  const ws = new WebSocket(`ws://${base}/ws`, withCookie ? ({ headers: { cookie: withCookie } } as never) : undefined)
+  const messages: { type: string; reason?: string; view?: PublicView }[] = []
+  let closed = false
+  let waiter: (() => void) | null = null
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(String(event.data))
+    if (msg.type === 'hello') ws.send(JSON.stringify(message))
+    else messages.push(msg)
+    waiter?.()
+  }
+  ws.onclose = () => {
+    closed = true
+    waiter?.()
+  }
+  const until = (test: () => boolean, what: string) =>
+    new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`jamais : ${what}`)), 2000)
+      const check = () => {
+        if (test()) {
+          clearTimeout(timer)
+          waiter = null
+          resolve()
+        }
+      }
+      waiter = check
+      check()
+    })
+  return { ws, messages, until, isClosed: () => closed }
+}
+
+describe('visibilité et session vérifiées à chaque diffusion', () => {
+  it('une édition repassée en test ne parle plus aux abonnés publics sans jeton', async () => {
+    const created = await api('/api/admin/editions', { settings: { name: 'Bientôt cachée', date: '2026-12-19' } })
+    const id = created.body.id as string
+    const k = created.body.view.previewToken as string
+    const command = (c: object) => api(`/api/admin/editions/${id}/commands`, { command: c })
+    const anonymous = listen({ type: 'subscribe', editionId: id })
+    const withToken = listen({ type: 'subscribe', editionId: id, k })
+    await anonymous.until(() => anonymous.messages.some((m) => m.type === 'view'), 'première vue')
+    await withToken.until(() => withToken.messages.some((m) => m.type === 'view'), 'première vue')
+
+    expect((await command({ type: 'updateEdition', changes: { isTest: true } })).status).toBe(200)
+    await command({ type: 'registerTeam', team: { player1: 'Paul', player2: 'Marie' } })
+    await withToken.until(() => withToken.messages.some((m) => m.view?.teams.length === 1), 'vue avec l’équipe')
+
+    const views = anonymous.messages.filter((m) => m.type === 'view')
+    expect(views).toHaveLength(1)
+    expect(views[0].view!.isTest).toBe(false)
+    expect(anonymous.messages.at(-1)).toMatchObject({ type: 'error', reason: 'not_found' })
+    anonymous.ws.close()
+    withToken.ws.close()
+  })
+
+  it('une console dont la session a expiré est coupée à la diffusion suivante', async () => {
+    const created = await api('/api/admin/editions', { settings: { name: 'Session', date: '2026-12-19' } })
+    const id = created.body.id as string
+    const consoleSocket = listen({ type: 'subscribe-admin', editionId: id }, cookie)
+    await consoleSocket.until(() => consoleSocket.messages.some((m) => m.type === 'view'), 'vue console')
+
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(Date.now() + 31 * 24 * 3600 * 1000)
+      const login = await fetch(`http://${base}/api/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password: PASSWORD }),
+      })
+      const fresh = login.headers.get('set-cookie')!.split(';')[0]
+      const res = await fetch(`http://${base}/api/admin/editions/${id}/commands`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', cookie: fresh },
+        body: JSON.stringify({ command: { type: 'registerTeam', team: { player1: 'Paul', player2: 'Marie' } } }),
+      })
+      expect(res.status).toBe(200)
+      await consoleSocket.until(() => consoleSocket.isClosed(), 'socket fermé')
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(consoleSocket.messages.filter((m) => m.type === 'view')).toHaveLength(1)
+    expect(consoleSocket.messages.at(-1)).toMatchObject({ type: 'error', reason: 'unauthorized' })
   })
 })

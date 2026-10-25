@@ -13,7 +13,9 @@ import { send } from './hub.ts'
  */
 export function registerWebSocket(app: FastifyInstance, { store, hub, auth }: ServerContext): void {
   app.get('/ws', { websocket: true }, (socket, req) => {
-    const admin = auth.fromCookieHeader(req.headers.cookie)
+    // Session lue à l'upgrade, revérifiée à chaque message et à chaque diffusion (elle peut expirer).
+    const cookie = req.headers.cookie
+    const isAdmin = () => auth.fromCookieHeader(cookie)
     send(socket, { type: 'hello' })
 
     socket.on('message', (raw: Buffer) => {
@@ -26,12 +28,13 @@ export function registerWebSocket(app: FastifyInstance, { store, hub, auth }: Se
       const editionId = typeof msg.editionId === 'string' ? msg.editionId : ''
       const state = store.get(editionId)
       if (msg.type === 'subscribe') {
-        if (!publiclyVisible(state, msg.k)) return send(socket, { type: 'error', editionId, reason: 'not_found' })
-        hub.subscribe(socket, editionId, false, state)
+        const k = msg.k
+        if (!publiclyVisible(state, k)) return send(socket, { type: 'error', editionId, reason: 'not_found' })
+        hub.subscribe(socket, { editionId, admin: false, check: (s) => (publiclyVisible(s, k) ? null : 'not_found') }, state)
       } else if (msg.type === 'subscribe-admin') {
-        if (!admin) return send(socket, { type: 'error', editionId, reason: 'unauthorized' })
+        if (!isAdmin()) return send(socket, { type: 'error', editionId, reason: 'unauthorized' })
         if (!state?.edition) return send(socket, { type: 'error', editionId, reason: 'not_found' })
-        hub.subscribe(socket, editionId, true, state)
+        hub.subscribe(socket, { editionId, admin: true, check: () => (isAdmin() ? null : 'unauthorized') }, state)
       }
     })
     socket.on('close', () => hub.remove(socket))
