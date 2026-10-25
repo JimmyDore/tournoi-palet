@@ -1,4 +1,4 @@
-import type { BracketKey } from './brackets.ts'
+import { BRACKET_NAMES, type BracketKey } from './brackets.ts'
 import type { EditionState } from './state.ts'
 import { accept, refuse, type Ctx, type Decision } from './types.ts'
 import type { PublicView } from './views.ts'
@@ -10,10 +10,10 @@ import type { PublicView } from './views.ts'
 export const TV_VIEWS = [
   { key: 'matches', label: 'Matchs en cours' },
   { key: 'standings', label: 'Classement des poules' },
-  { key: 'bracket-P', label: 'Tableau Principal' },
-  { key: 'bracket-CP', label: 'Challenge Principal' },
-  { key: 'bracket-C', label: 'Consolante' },
-  { key: 'bracket-CC', label: 'Challenge Consolante' },
+  { key: 'bracket-P', label: `Tableau ${BRACKET_NAMES.P}` },
+  { key: 'bracket-CP', label: BRACKET_NAMES.CP },
+  { key: 'bracket-C', label: BRACKET_NAMES.C },
+  { key: 'bracket-CC', label: BRACKET_NAMES.CC },
   { key: 'ranking', label: 'Classement final' },
 ] as const
 

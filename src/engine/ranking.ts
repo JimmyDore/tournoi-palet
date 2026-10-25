@@ -1,5 +1,5 @@
 import { BRACKET_NAMES, bracketsView, type BracketKey, type BracketMatchView, type BracketView, type BracketsView } from './brackets.ts'
-import { CHALLENGES } from './challenges.ts'
+import { BRACKET_ORDER, CHALLENGES } from './challenges.ts'
 import { poolStandings } from './pool.ts'
 import { playsIn, type TeamRef } from './types.ts'
 import { prizeOf } from './prizes.ts'
@@ -117,6 +117,6 @@ export function finalRanking(state: EditionState, brackets: BracketsView = brack
     definitive,
     prize: prizeOf(state.prizes, i + 1),
   }))
-  const finished = CHALLENGES.flat().every((key) => byKey.get(key)?.winner)
+  const finished = BRACKET_ORDER.every((key) => byKey.get(key)?.winner)
   return { finished, rows }
 }

@@ -1,14 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { BRACKET_NAMES, IMPACT_END, POOL_ROUNDS, bracketSize, type BracketKey, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
+import { BRACKET_NAMES, BRACKET_ORDER, IMPACT_END, POOL_ROUNDS, bracketSize, challengeParent, ofBracket, type BracketMatchView, type BracketRoundView, type BracketTeamRef, type BracketView } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
+import { ordinal } from '../format.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { ClockControls } from './ClockControls.tsx'
 import { MatchList } from './PoolsTab.tsx'
 import { RehearsalPanel } from './RehearsalPanel.tsx'
 import type { TabProps } from './tabs.tsx'
-
-/** Ordre d'affichage : chaque Challenge sous son tableau parent. */
-const BRACKET_ORDER: BracketKey[] = ['P', 'CP', 'C', 'CC']
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`
 
@@ -21,7 +19,7 @@ function sizeLine(teams: number): string {
 }
 
 /** Nom affiché dans la console : avec le rang au classement des poules. */
-const seeded = (team: BracketTeamRef | null) => (team ? { ...team, name: `${team.name} (${team.poolRank === 1 ? '1re' : `${team.poolRank}e`})` } : { name: 'exempt' })
+const seeded = (team: BracketTeamRef | null) => (team ? { ...team, name: `${team.name} (${ordinal(team.poolRank)})` } : { name: 'exempt' })
 
 type Dialog =
   /** `warning` : le refus du moteur sans confirmation, qui dit l'impact de la correction. */
@@ -251,7 +249,7 @@ export function BracketsTab({ view }: TabProps) {
           {BRACKET_ORDER.map((key) => {
             const b = brackets.find((x) => x.key === key)
             if (b) return <BracketPanel key={key} bracket={b} editing={editing} onEdit={setEditing} onSave={save} queue={queue} />
-            const parent = key === 'CP' ? 'du Principal' : 'de la Consolante'
+            const parent = ofBracket(challengeParent(key)!)
             return (
               <section key={key} className="panel" aria-label={`Tableau ${BRACKET_NAMES[key]}`}>
                 <h2>{BRACKET_NAMES[key]}</h2>

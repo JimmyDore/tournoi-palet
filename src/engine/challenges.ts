@@ -13,6 +13,14 @@ export const CHALLENGES: readonly (readonly [parent: BracketKey, challenge: Brac
   ['C', 'CC'],
 ]
 
+/** Tous les tableaux dans l'ordre du classement final : chaque Challenge après son parent. */
+export const BRACKET_ORDER: readonly BracketKey[] = CHALLENGES.flat()
+
+/** Tableau parent d'un Challenge ; `null` pour le Principal et la Consolante. */
+export function challengeParent(key: BracketKey): BracketKey | null {
+  return CHALLENGES.find(([, challenge]) => challenge === key)?.[0] ?? null
+}
+
 /** Ce qu'il faut savoir d'un match du 1er tour du parent. */
 export interface FirstRoundMatch {
   bye: boolean
