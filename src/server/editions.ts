@@ -32,17 +32,26 @@ interface Edition {
 
 export type Applied = { ok: true; editionId: string; state: EditionState; events: Event[] } | { ok: false; reason: string; notFound?: boolean }
 
+/** Le moteur tel que le magasin l'utilise (remplaçable en test). */
+export interface StoreEngine {
+  evolve: typeof evolve
+}
+
 /**
  * Éditions en mémoire, reconstruites au démarrage en rejouant les événements
- * de SQLite, puis tenues à jour à chaque commande acceptée. Une commande est
- * persistée (transaction) avant d'être appliquée en mémoire.
+ * de SQLite, puis tenues à jour à chaque commande acceptée. Les événements
+ * d'une commande sont d'abord appliqués en mémoire : s'ils ne s'appliquent
+ * pas, rien n'est écrit (sinon le rejeu au démarrage planterait) ; puis ils
+ * sont persistés (transaction) et seulement alors l'état est remplacé.
  */
 export class EditionStore {
   private readonly editions = new Map<string, Edition>()
   private readonly db: DatabaseSync
+  private readonly engine: StoreEngine
 
-  constructor(db: DatabaseSync) {
+  constructor(db: DatabaseSync, engine: StoreEngine = { evolve }) {
     this.db = db
+    this.engine = engine
     for (const [id, events] of loadEvents(db)) this.editions.set(id, { state: replay(events), events })
   }
 
@@ -91,8 +100,8 @@ export class EditionStore {
   private commit(editionId: string, edition: Edition, command: Command, ctx: Ctx): Applied {
     const decision = decide(edition.state, command, ctx)
     if (!decision.ok) return decision
+    const state = decision.events.reduce(this.engine.evolve, edition.state)
     appendEvents(this.db, editionId, edition.events.length, decision.events)
-    const state = decision.events.reduce(evolve, edition.state)
     this.editions.set(editionId, { state, events: [...edition.events, ...decision.events] })
     return { ok: true, editionId, state, events: decision.events }
   }
