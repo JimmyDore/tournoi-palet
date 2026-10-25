@@ -55,3 +55,21 @@ Rappel de l'affiche 2025 : 20 décembre, arrivée 13h, début 14h, salle Arc-en-
 9. Sponsors à afficher sur la télé et sur la page publique ?
 10. Caution de 2 € : c'est pour quoi, et faut-il suivre qui l'a récupérée ?
 11. Concours de déguisements : faut-il un vote du public sur téléphone (sujet de discorde l'an dernier), ou l'organisateur saisit-il les gagnants ?
+
+## Réponses de Jean (2026-10-25) et arbitrages de Jimmy
+
+| # | Question | Réponse | Suite |
+|---|---|---|---|
+| 1 | Q7, 1er tour des tableaux | Pas de réponse | Têtes de série par défaut ; à relancer |
+| 2 | Q14, répartition hors 48 | Il y aura toujours 48 équipes | Défaut 32/16 inchangé |
+| 3 | Q17, rythme | On attend la fin de tous les matchs d'un tour | Tours synchronisés par défaut. Jimmy : bouton « Lancer les matchs prêts » retiré de la console (la commande reste dans le moteur pour le rejouage) |
+| 4 | Q15, score d'exempt | Jamais impair (48 équipes) | 13-7 inchangé, sans objet |
+| 5 | Q19/Q22, limite de temps | « Au feeling », parfois plus long en élimination directe | Jimmy : une seule durée par défaut, modifiable au lancement du chrono, qui ne bloque rien. Déjà le cas, rien à changer |
+| 6 | Q21, scores sur téléphone | Non, annonce à la table | Hors périmètre |
+| 7 | Q9, tirage des poules | Tirage au sort | Inchangé |
+| 8 | Lots | Pas encore répartis ; est-ce important pour le tableau ? | Non : les lots n'influencent ni tableaux ni classement, ils se saisissent à tout moment (Réglages > Lots) |
+| 9 | Sponsors | Pas forcément (ils étaient sur une feuille) | Rien à faire |
+| 10 | Caution de 2 € | Caution pour le prêt des palets : noter qui a payé et pris les palets au début, qui les rend à la fin (on rend les 2 €) | Nouveau besoin, grilling avec Jimmy puis ticket |
+| 11 | Vote déguisements | Les organisateurs votent ; Jean aime l'idée d'un vote public, il demande | En attente, ne rien coder |
+
+Encore à faire trancher par Jean : une équipe forfait en poule va-t-elle en tableau ? Aujourd'hui non, elle finit dernière (`docs/decisions-nuit.md`, décision 06).

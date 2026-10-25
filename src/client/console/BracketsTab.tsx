@@ -225,21 +225,6 @@ export function BracketsTab({ view }: TabProps) {
               sur les planches libres (les matchs sans planche la prennent dès qu’une se libère ; rythme réglable dans Réglages). Cliquez sur un match pour saisir
               ou corriger son score (Tab passe au second score, Entrée valide, Échap annule). Entre parenthèses : le rang au classement des poules.
             </p>
-            <div className="actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={view.brackets.ready === 0}
-                onClick={() => void send({ type: 'launchReadyMatches' }, `${plural(view.brackets.ready, 'match prêt')} lancé${view.brackets.ready > 1 ? 's' : ''}.`)}
-              >
-                Lancer les matchs prêts ({view.brackets.ready})
-              </button>
-            </div>
-            <p className="muted small">
-              {view.brackets.ready === 0
-                ? 'Aucun match prêt : pas de match non lancé dont les deux équipes sont connues.'
-                : `${plural(view.brackets.ready, 'match')} du tour suivant ${view.brackets.ready > 1 ? 'ont' : 'a'} déjà ${view.brackets.ready > 1 ? 'leurs' : 'ses'} deux équipes : ${view.brackets.ready > 1 ? 'ils peuvent' : 'il peut'} commencer sans attendre la fin du tour.`}
-            </p>
             <form
               className="split-form"
               onSubmit={(e) => {

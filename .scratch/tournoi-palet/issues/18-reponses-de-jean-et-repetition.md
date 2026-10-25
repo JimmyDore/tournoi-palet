@@ -6,7 +6,12 @@
 
 **Status:** needs-info
 
-- [ ] Les 11 réponses de Jean sont consignées dans `docs/grilling.md`
+- [x] Les 11 réponses de Jean sont consignées dans `docs/grilling.md`
 - [ ] Réglages par défaut ajustés, avec leurs tests mis à jour
 - [ ] Nouveaux tickets créés pour les ajouts demandés, ou décision explicite de ne pas les faire
 - [ ] Répétition générale avec Jean terminée sans bug bloquant
+
+
+## Avancement (2026-10-25)
+
+Réponses consignées dans `docs/grilling.md`. Restent : Q7 (1er tour) et le vote déguisements, en attente de Jean ; le forfait en poule ; le ticket caution, après grilling.

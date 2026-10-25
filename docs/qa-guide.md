@@ -111,12 +111,11 @@ Coche chaque case quand le résultat attendu est bien là. En cas d'écart, note
 - [ ] **Télé pendant les tableaux.** → La rotation montre les matchs de tableau en cours, le classement des poules, les tableaux formés et le classement provisoire. Bloque « Tableau Principal » : l'arbre de 32 est coupé en deux pages haut / bas pendant les 1/16 et les 1/8.
 - [ ] **Téléphone pendant les tableaux.** → « Mon équipe » donne le tableau, le tour, la planche et l'adversaire, ou « en attente de l'adversaire », ou « direction le Challenge ».
 
-### J. Corrections, forfait et matchs prêts en tableau (ticket 14)
+### J. Corrections et forfait en tableau (ticket 14)
 
 - [ ] **Correction en cascade.** Dans un tour déjà suivi, corrige un 1/16 du Principal en inversant le vainqueur. → La boîte de confirmation détaille l'impact (« X remplace Y en 1/8 du Principal, planche N ; le score … sera effacé », Challenge refait). Après confirmation, l'arbre, le Challenge et le classement sont cohérents. Aucune planche n'est affichée deux fois.
 - [ ] **Même vainqueur.** Corrige un score sans changer le vainqueur (13-5 → 13-7). → Aucune confirmation demandée.
 - [ ] **Forfait en tableau.** « Forfait en tableau » sur une équipe encore en lice (confirmation). → Son adversaire avance 13-0 (« gagné par forfait »), et l'équipe est classée à sa place d'élimination.
-- [ ] **Matchs prêts.** Quand un match du tour suivant a ses deux équipes connues alors que le tour n'est pas fini : « Lancer les matchs prêts (N) ». → Seuls ces matchs partent, avec une planche, ou en file s'il n'y en a plus.
 
 ### K. Challenges et classement final (ticket 13)
 
