@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify'
 import { adminView, exportView, type Command, type EditionSettings } from '../engine/index.ts'
 import type { Applied } from './editions.ts'
 import { NOT_FOUND, type ServerContext } from './context.ts'
+import { SESSION_COOKIE, readCookie } from './auth.ts'
 
 /** Connexion et API de la console. Tout `/api/admin/*` exige une session. */
 export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): void {
@@ -13,10 +14,10 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): v
     }
   })
 
-  app.post<{ Body: { password?: unknown } }>('/api/login', async (req, reply) => {
+  app.post<{ Body: { password?: unknown; name?: unknown } }>('/api/login', async (req, reply) => {
     if (!auth.checkPassword(req.body?.password)) return reply.code(401).send({ ok: false, reason: 'Mot de passe incorrect.' })
     const secure = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https'
-    reply.header('set-cookie', auth.setCookie(auth.issue(), secure))
+    reply.header('set-cookie', auth.setCookie(auth.issue(Date.now(), req.body?.name), secure))
     return { ok: true }
   })
 
@@ -25,12 +26,15 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): v
     return { ok: true }
   })
 
-  app.get('/api/session', async (req) => ({ admin: auth.fromCookieHeader(req.headers.cookie) }))
+  app.get('/api/session', async (req) => {
+    const session = auth.session(readCookie(req.headers.cookie, SESSION_COOKIE))
+    return { admin: session !== null, name: session?.actor ?? null }
+  })
 
   app.get('/api/admin/editions', async () => store.list())
 
   app.post<{ Body: { settings?: Partial<EditionSettings> } }>('/api/admin/editions', async (req, reply) =>
-    answer(reply, ctx.create(req.body?.settings ?? {})),
+    answer(reply, ctx.create(req.body?.settings ?? {}, auth.actorFromCookieHeader(req.headers.cookie))),
   )
 
   app.get<{ Params: { id: string } }>('/api/admin/editions/:id', async (req, reply) => {
@@ -41,7 +45,7 @@ export function registerAdminRoutes(app: FastifyInstance, ctx: ServerContext): v
   app.post<{ Params: { id: string }; Body: { command?: Command } }>('/api/admin/editions/:id/commands', async (req, reply) => {
     const command = req.body?.command
     if (!command || typeof command !== 'object') return reply.code(400).send({ ok: false, reason: 'Commande illisible.' })
-    return answer(reply, ctx.execute(req.params.id, command))
+    return answer(reply, ctx.execute(req.params.id, command, auth.actorFromCookieHeader(req.headers.cookie)))
   })
 
   // Fichier lisible (JSON indenté) : vues calculées et événements, à garder hors du serveur.

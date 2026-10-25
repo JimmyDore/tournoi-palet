@@ -19,9 +19,9 @@ export interface ServerContext {
   store: EditionStore
   hub: Hub
   auth: Auth
-  /** Applique une commande (persistée) puis diffuse les vues aux abonnés. */
-  execute(editionId: string, command: Command): Applied
-  create(settings: Partial<EditionSettings>): Applied
+  /** Applique une commande (persistée, avec son auteur) puis diffuse les vues aux abonnés. */
+  execute(editionId: string, command: Command, actor?: string | null): Applied
+  create(settings: Partial<EditionSettings>, actor?: string | null): Applied
 }
 
 export function createServerContext(store: EditionStore, hub: Hub, auth: Auth, backups?: Backups): ServerContext {
@@ -36,11 +36,11 @@ export function createServerContext(store: EditionStore, hub: Hub, auth: Auth, b
     store,
     hub,
     auth,
-    execute: (editionId, command) => {
+    execute: (editionId, command, actor = null) => {
       const before = store.get(editionId)
-      return after(store.apply(editionId, command, serverCtx()), before)
+      return after(store.apply(editionId, command, serverCtx(), actor), before)
     },
-    create: (settings) => after(store.create(settings, serverCtx())),
+    create: (settings, actor = null) => after(store.create(settings, serverCtx(), actor)),
   }
 }
 

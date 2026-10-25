@@ -51,13 +51,14 @@ function ConsoleShell({ children, onLogout }: { children: ReactNode; onLogout?: 
 
 function Login({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setBusy(true)
-    const result = await postJson<{ ok: true }>('/api/login', { password })
+    const result = await postJson<{ ok: true }>('/api/login', { password, name })
     setBusy(false)
     if (result.ok) onLogin()
     else setError(result.reason)
@@ -70,6 +71,10 @@ function Login({ onLogin }: { onLogin: () => void }) {
         <label className="field">
           <span>Mot de passe</span>
           <input type="password" autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Votre prénom (facultatif, noté au journal)</span>
+          <input autoComplete="given-name" maxLength={40} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         {error && <p className="refusal" role="alert">{error}</p>}
         <button type="submit" className="btn btn-primary" disabled={busy || !password}>

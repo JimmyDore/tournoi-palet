@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { adminView, evolve, seededRng, type Event } from '../engine/index.ts'
-import { openDatabase } from './db.ts'
+import { DatabaseSync } from 'node:sqlite'
+import { DB_FILE, openDatabase } from './db.ts'
 import { EditionStore } from './editions.ts'
 
 // Le magasin d'éditions : une commande n'est persistée que si le moteur sait
@@ -38,6 +39,24 @@ describe('EditionStore', () => {
     // Et la commande suivante reprend à la bonne position.
     expect(restarted.apply(id, { type: 'registerTeam', team: { player1: 'A', player2: 'B' } }, ctx()).ok).toBe(true)
     expect(new EditionStore(db).events(id)).toHaveLength(2)
+    db.close()
+  })
+
+  it('ouvre une base d’avant la colonne « actor » : elle est ajoutée, les anciens événements n’ont pas d’auteur', () => {
+    dataDir = mkdtempSync(path.join(tmpdir(), 'palet-store-'))
+    const old = new DatabaseSync(path.join(dataDir, DB_FILE))
+    old.exec('CREATE TABLE events (edition_id TEXT NOT NULL, seq INTEGER NOT NULL, type TEXT NOT NULL, payload TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (edition_id, seq))')
+    const created = { type: 'editionCreated', at: 1, editionId: 'vieille', settings: { name: 'Vieille', date: '2025-12-20' }, previewToken: 'x' }
+    old.prepare('INSERT INTO events VALUES (?, ?, ?, ?, ?)').run('vieille', 0, created.type, JSON.stringify(created), 1)
+    old.close()
+
+    const db = openDatabase(dataDir)
+    const store = new EditionStore(db)
+    // Un réglage ajouté depuis prend sa valeur par défaut au rejeu.
+    expect(adminView(store.get('vieille')!).settings).toMatchObject({ name: 'Vieille', boards: 24, bracketPace: 'synchronized' })
+    expect(store.journal('vieille')!.map((l) => l.actor)).toEqual([null])
+    expect(store.apply('vieille', { type: 'updateEdition', changes: { boards: 20 } }, ctx(), 'Marie').ok).toBe(true)
+    expect(new EditionStore(db).journal('vieille')!.map((l) => l.actor)).toEqual([null, 'Marie'])
     db.close()
   })
 })

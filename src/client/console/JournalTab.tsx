@@ -6,6 +6,8 @@ import type { TabProps } from './tabs.tsx'
 interface JournalLine {
   seq: number
   at: number
+  /** Prénom donné à la connexion, `null` s'il n'a pas été donné. */
+  actor: string | null
   label: string
   before?: string
   after?: string
@@ -31,7 +33,10 @@ export function JournalTab({ view }: TabProps) {
         <ol className="journal">
           {lines.map((l) => (
             <li key={l.seq}>
-              <span className="muted">{formatTimestamp(l.at)}</span>
+              <span className="muted">
+                {formatTimestamp(l.at)}
+                {l.actor && ` · ${l.actor}`}
+              </span>
               <strong>{l.label}</strong>
               {(l.before || l.after) && (
                 <span className="journal-diff">

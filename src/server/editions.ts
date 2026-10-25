@@ -20,6 +20,8 @@ import { appendEvents, loadEvents } from './db.ts'
 export interface JournalLine {
   seq: number
   at: number
+  /** Prénom donné à la connexion par qui a fait la modification ; `null` s'il n'a rien dit. */
+  actor: string | null
   type: string
   label: string
   before?: string
@@ -29,6 +31,8 @@ export interface JournalLine {
 interface Edition {
   state: EditionState
   events: Event[]
+  /** Auteur de chaque événement (même index), hors moteur. */
+  actors: (string | null)[]
 }
 
 export type Applied = { ok: true; editionId: string; state: EditionState; events: Event[] } | { ok: false; reason: string; notFound?: boolean }
@@ -53,7 +57,7 @@ export class EditionStore {
   constructor(db: DatabaseSync, engine: StoreEngine = { evolve }) {
     this.db = db
     this.engine = engine
-    for (const [id, events] of loadEvents(db)) this.editions.set(id, { state: replay(events), events })
+    for (const [id, { events, actors }] of loadEvents(db)) this.editions.set(id, { state: replay(events), events, actors })
   }
 
   get(editionId: string): EditionState | undefined {
@@ -72,17 +76,17 @@ export class EditionStore {
       .sort(newestFirst)
   }
 
-  create(settings: Partial<EditionSettings>, ctx: Ctx): Applied {
+  create(settings: Partial<EditionSettings>, ctx: Ctx, actor: string | null = null): Applied {
     let editionId = newEditionId()
     while (this.editions.has(editionId)) editionId = newEditionId()
-    return this.commit(editionId, { state: initialState(), events: [] }, { type: 'createEdition', editionId, settings }, ctx)
+    return this.commit(editionId, { state: initialState(), events: [], actors: [] }, { type: 'createEdition', editionId, settings }, ctx, actor)
   }
 
-  apply(editionId: string, command: Command, ctx: Ctx): Applied {
+  apply(editionId: string, command: Command, ctx: Ctx, actor: string | null = null): Applied {
     const edition = this.editions.get(editionId)
     if (!edition) return { ok: false, reason: "Cette édition n'existe pas.", notFound: true }
     if (command?.type === 'createEdition') return { ok: false, reason: 'Cette édition existe déjà.' }
-    return this.commit(editionId, edition, command, ctx)
+    return this.commit(editionId, edition, command, ctx, actor)
   }
 
   journal(editionId: string): JournalLine[] | undefined {
@@ -92,18 +96,18 @@ export class EditionStore {
     let state = initialState()
     edition.events.forEach((event, seq) => {
       const next = evolve(state, event)
-      lines.push({ seq, at: event.at, type: event.type, ...describeEvent(state, next, event) })
+      lines.push({ seq, at: event.at, actor: edition.actors[seq] ?? null, type: event.type, ...describeEvent(state, next, event) })
       state = next
     })
     return lines
   }
 
-  private commit(editionId: string, edition: Edition, command: Command, ctx: Ctx): Applied {
+  private commit(editionId: string, edition: Edition, command: Command, ctx: Ctx, actor: string | null): Applied {
     const decision = decide(edition.state, command, ctx)
     if (!decision.ok) return decision
     const state = decision.events.reduce(this.engine.evolve, edition.state)
-    appendEvents(this.db, editionId, edition.events.length, decision.events)
-    this.editions.set(editionId, { state, events: [...edition.events, ...decision.events] })
+    appendEvents(this.db, editionId, edition.events.length, decision.events, actor)
+    this.editions.set(editionId, { state, events: [...edition.events, ...decision.events], actors: [...edition.actors, ...decision.events.map(() => actor)] })
     return { ok: true, editionId, state, events: decision.events }
   }
 }

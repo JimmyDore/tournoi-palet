@@ -97,6 +97,28 @@ describe('console', () => {
     expect(journal.body.map((l: { label: string }) => l.label)).toEqual(['Édition « Concours 2026 » créée', 'Réglages modifiés'])
   })
 
+  it('le journal dit qui a fait chaque modification (prénom facultatif à la connexion)', async () => {
+    const res = await fetch(`http://${base}/api/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ password: PASSWORD, name: '  Jean  ' }),
+    })
+    const jean = res.headers.get('set-cookie')!.split(';')[0]
+    expect((await api('GET', '/api/session', jean)).body).toEqual({ admin: true, name: 'Jean' })
+    const created = await api('POST', '/api/admin/editions', jean, { settings: { name: 'Qui', date: '2026-12-03' } })
+    const id = created.body.id as string
+    await api('POST', `/api/admin/editions/${id}/commands`, await login(), { command: { type: 'updateEdition', changes: { boards: 18 } } })
+
+    await app.close()
+    await start()
+
+    const journal = await api('GET', `/api/admin/editions/${id}/journal`, jean)
+    expect(journal.body.map((l: { label: string; actor: string | null }) => [l.label, l.actor])).toEqual([
+      ['Édition « Qui » créée', 'Jean'],
+      ['Réglages modifiés', null],
+    ])
+  })
+
   it('renvoie le refus du moteur tel quel', async () => {
     const cookie = await login()
     const { body } = await api('POST', '/api/admin/editions', cookie, { settings: { name: 'R', date: '2026-12-01' } })
