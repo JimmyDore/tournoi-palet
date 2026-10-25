@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { TeamRef } from '../../engine/index.ts'
 import { getJson } from '../api.ts'
 import { formatDate } from '../format.ts'
 import { Link } from '../router.tsx'
@@ -9,7 +10,7 @@ interface PalmaresEntry {
   id: string
   name: string
   date: string
-  winner: { id: string; name: string } | null
+  winner: TeamRef | null
 }
 
 /** `/palmares` : éditions terminées, la plus récente en tête ; chacune mène à sa page. */

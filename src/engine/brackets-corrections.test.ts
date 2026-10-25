@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adminView, bracketsView, correctionImpact, describeEvent, finalRanking, replay, type BracketMatchView } from './index.ts'
+import { adminView, bracketsView, playsIn, correctionImpact, describeEvent, finalRanking, replay, type BracketMatchView } from './index.ts'
 import { seededRng, randomInt } from './rng.ts'
 import { allBracketMatches, bracketsReady, round, type Harness } from './testing.ts'
 
@@ -9,7 +9,6 @@ const allMatches = allBracketMatches
 const match = (t: Harness, id: string) => allMatches(t).find((m) => m.id === id)!
 const score = (t: Harness, id: string, scoreA: number, scoreB: number, confirm?: boolean) =>
   t.apply({ type: 'enterBracketScore', matchId: id, scoreA, scoreB, ...(confirm ? { confirm } : {}) })
-const has = (m: BracketMatchView, teamId: string) => m.teamA?.id === teamId || m.teamB?.id === teamId
 const name = (m: BracketMatchView, side: 'A' | 'B') => (side === 'A' ? m.teamA : m.teamB)!.name
 
 /** Planches des matchs en cours : jamais deux fois la même, et aucun match n'attend tant qu'une planche est libre. */
@@ -140,7 +139,7 @@ describe('forfait en tableau et classement final', () => {
     t.apply({ type: 'declareForfeit', teamId: quitter.id })
     for (const m of bracketsView(t.state).live.filter((m) => m.bracket === 'P')) score(t, m.id, 13, 5)
     // Perdant du 1er tour du Principal : il va au Challenge Principal, où il perd aussi 13-0.
-    const cpMatch = bracketsView(t.state).brackets.find((b) => b.key === 'CP')!.rounds[0].matches.find((m) => has(m, quitter.id))!
+    const cpMatch = bracketsView(t.state).brackets.find((b) => b.key === 'CP')!.rounds[0].matches.find((m) => playsIn(m, quitter.id))!
     expect(cpMatch).toMatchObject({ status: 'done', forfeit: quitter.id })
     for (const m of bracketsView(t.state).live.filter((m) => m.bracket === 'CP')) score(t, m.id, 13, 5)
     const row = finalRanking(t.state).rows.find((r) => r.team.id === quitter.id)!

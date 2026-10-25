@@ -1,12 +1,12 @@
 import { CHALLENGES, challengeEntrants } from './challenges.ts'
 import { cancelMatch, numberedBoards, launchMatch, releaseMatch, type BoardAllocation } from './boards.ts'
-import { POOL_ROUNDS, poolStandings, poolView, type PoolTeamRef } from './pool.ts'
+import { POOL_ROUNDS, poolStandings, poolView } from './pool.ts'
 import { shuffle } from './rng.ts'
 import { MAX_SCORE } from './settings.ts'
 import { scoreProblem, type Score } from './score.ts'
 import type { EditionState } from './state.ts'
 import { teamName } from './teams.ts'
-import { accept, refuse, type Ctx, type Decision } from './types.ts'
+import { accept, refuse, type Ctx, type Decision, type TeamRef } from './types.ts'
 
 // Tableaux : répartition Principal / Consolante, grille du premier tour
 // (têtes de série ou tirage au sort), scores. Seuls les faits sont stockés
@@ -532,7 +532,7 @@ export function roundName(matches: number): string {
 /** `playing` : sur sa planche ; `waiting-board` : lancé, pas de planche libre ; `done` : score saisi ; `pending` : pas encore lancé ; `bye` : exempt. */
 export type BracketMatchStatus = 'playing' | 'waiting-board' | 'done' | 'pending' | 'bye'
 
-export interface BracketTeamRef extends PoolTeamRef {
+export interface BracketTeamRef extends TeamRef {
   /** Rang au classement des poules. */
   poolRank: number
 }

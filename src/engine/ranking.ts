@@ -1,6 +1,7 @@
 import { BRACKET_NAMES, bracketsView, type BracketKey, type BracketMatchView, type BracketView, type BracketsView } from './brackets.ts'
 import { CHALLENGES } from './challenges.ts'
 import { poolStandings } from './pool.ts'
+import { playsIn, type TeamRef } from './types.ts'
 import { prizeOf } from './prizes.ts'
 import type { EditionState } from './state.ts'
 
@@ -19,7 +20,7 @@ export const RANKING_BLOCK_NAMES: Record<RankingBlock, string> = { ...BRACKET_NA
 export interface FinalRankingRow {
   place: number
   /** Nom seulement : la ligne est publique telle quelle. */
-  team: { id: string; name: string }
+  team: TeamRef
   poolRank: number
   block: RankingBlock
   blockName: string
@@ -40,7 +41,7 @@ export interface FinalRanking {
 
 /** Parcours d'une équipe dans le tableau de son bloc. */
 interface Path {
-  team: { id: string; name: string }
+  team: TeamRef
   poolRank: number
   block: RankingBlock
   /** Plus c'est haut, plus l'équipe est allée loin : tour d'élimination, +½ si encore en lice, nombre de tours + 1 pour le vainqueur. */
@@ -52,16 +53,15 @@ interface Path {
 }
 
 const playedOrBye = (m: BracketMatchView) => m.status === 'done' || m.status === 'bye'
-const has = (m: BracketMatchView, teamId: string) => m.teamA?.id === teamId || m.teamB?.id === teamId
 const lost = (m: BracketMatchView, teamId: string) => m.score !== null && (m.score.a > m.score.b ? m.teamB : m.teamA)?.id === teamId
 
 /** Parcours d'une équipe dans un tableau (`undefined` : Challenge pas encore formé). */
-function pathIn(bracket: BracketView | undefined, block: RankingBlock, team: { id: string; name: string }, poolRank: number): Path {
+function pathIn(bracket: BracketView | undefined, block: RankingBlock, team: TeamRef, poolRank: number): Path {
   const base = { team: { id: team.id, name: team.name }, poolRank, block }
   if (!bracket) return { ...base, level: 0.5, losingScore: -1, eliminatedIn: null, definitive: false }
   let reached = 0
   for (const round of bracket.rounds) {
-    const match = round.matches.find((m) => has(m, team.id))
+    const match = round.matches.find((m) => playsIn(m, team.id))
     if (!match) break
     reached = round.round
     if (lost(match, team.id)) {

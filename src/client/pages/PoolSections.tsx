@@ -1,4 +1,4 @@
-import type { PoolMatchView, PublicView } from '../../engine/index.ts'
+import { playsIn, type PoolMatchView, type PublicView } from '../../engine/index.ts'
 
 /** Matchs de la partie en cours, par planche (téléphone). */
 export function CurrentMatches({ view, teamId }: { view: PublicView; teamId: string | null }) {
@@ -13,7 +13,7 @@ export function CurrentMatches({ view, teamId }: { view: PublicView; teamId: str
       </p>
       <ol className="phone-matches">
         {round.matches.map((m) => (
-          <PhoneMatch key={m.id} match={m} mine={m.teamA.id === teamId || m.teamB.id === teamId} />
+          <PhoneMatch key={m.id} match={m} mine={playsIn(m, teamId)} />
         ))}
       </ol>
       {round.bye && (

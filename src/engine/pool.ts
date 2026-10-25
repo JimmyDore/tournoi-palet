@@ -6,7 +6,7 @@ import { scoreProblem, type Score } from './score.ts'
 import { MAX_SCORE } from './settings.ts'
 import type { EditionState } from './state.ts'
 import { teamName } from './teams.ts'
-import { accept, refuse, type Ctx, type Decision } from './types.ts'
+import { accept, playsIn, refuse, type Ctx, type Decision, type TeamRef } from './types.ts'
 
 // Poules : parties tirées au hasard, une planche par match, scores par match.
 // Tout le reste (planches en cours, file d'attente, classement) est recalculé.
@@ -291,11 +291,6 @@ export function poolLockProblem(state: EditionState, command: { type: string; te
 
 // --- Vues ------------------------------------------------------------------
 
-export interface PoolTeamRef {
-  id: string
-  name: string
-}
-
 /** `playing` : sur sa planche, sans score ; `waiting-board` : pas de planche libre ; `done` : score saisi. */
 export type PoolMatchStatus = 'playing' | 'waiting-board' | 'done'
 
@@ -304,8 +299,8 @@ export interface PoolMatchView {
   round: number
   /** Planche où le match se joue (ou s'est joué) ; `null` s'il attend une planche. */
   board: number | null
-  teamA: PoolTeamRef
-  teamB: PoolTeamRef
+  teamA: TeamRef
+  teamB: TeamRef
   score: Score | null
   /** Équipe déclarée forfait si le match est gagné 13-0 par forfait, sinon `null`. */
   forfeit: string | null
@@ -316,7 +311,7 @@ export interface PoolRoundView {
   round: number
   /** Par planche croissante (sur une même planche, le match en cours d'abord), puis les matchs en attente de planche dans l'ordre de la file. */
   matches: PoolMatchView[]
-  bye: { team: PoolTeamRef; score: Score } | null
+  bye: { team: TeamRef; score: Score } | null
   /** Matchs sans score (« en attente de score »), par planche. */
   awaitingScore: string[]
   /** Matchs en attente de planche, dans l'ordre de la file. */
@@ -327,7 +322,7 @@ export interface PoolRoundView {
 
 export interface PoolStanding {
   rank: number
-  team: PoolTeamRef
+  team: TeamRef
   played: number
   wins: number
   losses: number
@@ -346,7 +341,7 @@ export interface PoolView {
   standings: PoolStanding[]
 }
 
-function teamRef(state: EditionState, teamId: string): PoolTeamRef {
+function teamRef(state: EditionState, teamId: string): TeamRef {
   const team = state.teams.find((t) => t.id === teamId)
   return { id: teamId, name: team ? teamName(team) : teamId }
 }
@@ -432,7 +427,7 @@ export function poolView(state: EditionState): PoolView {
 
 /** Prochain match d'une équipe dans la partie en cours (téléphone « mon équipe », télé). */
 export type NextMatch =
-  | { kind: 'match'; round: number; matchId: string; board: number | null; opponent: PoolTeamRef }
+  | { kind: 'match'; round: number; matchId: string; board: number | null; opponent: TeamRef }
   | { kind: 'bye'; round: number; score: Score }
 
 /** `null` : pas de match à jouer (pas encore de partie, ou score déjà saisi). */
@@ -441,7 +436,7 @@ export function nextMatchOf(state: EditionState, teamId: string): NextMatch | nu
   if (!last || teamId in state.forfeits) return null
   const round = roundView(state, last)
   if (round.bye?.team.id === teamId) return { kind: 'bye', round: last.round, score: round.bye.score }
-  const match = round.matches.find((m) => m.teamA.id === teamId || m.teamB.id === teamId)
+  const match = round.matches.find((m) => playsIn(m, teamId))
   if (!match || match.score) return null
   const opponent = match.teamA.id === teamId ? match.teamB : match.teamA
   return { kind: 'match', round: last.round, matchId: match.id, board: match.board, opponent }

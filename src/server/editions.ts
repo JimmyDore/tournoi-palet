@@ -6,6 +6,7 @@ import {
   editionSummary,
   evolve,
   initialState,
+  newestFirst,
   replay,
   type Command,
   type Ctx,
@@ -68,7 +69,7 @@ export class EditionStore {
   list(): EditionSummary[] {
     return [...this.editions.values()]
       .map((e) => editionSummary(e.state))
-      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+      .sort(newestFirst)
   }
 
   create(settings: Partial<EditionSettings>, ctx: Ctx): Applied {

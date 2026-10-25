@@ -18,6 +18,17 @@ export function refuse(reason: string): { ok: false; reason: string } {
   return { ok: false, reason }
 }
 
+/** Une équipe telle que les vues la montrent : son id et son nom affiché. */
+export interface TeamRef {
+  id: string
+  name: string
+}
+
+/** L'équipe joue-t-elle ce match (poule ou tableau, côté inconnu = `null`) ? */
+export function playsIn(match: { teamA: TeamRef | null; teamB: TeamRef | null }, teamId: string | null): boolean {
+  return teamId !== null && (match.teamA?.id === teamId || match.teamB?.id === teamId)
+}
+
 /** Tout événement porte son type et son horodatage serveur (`ctx.now`). */
 export interface BaseEvent {
   type: string

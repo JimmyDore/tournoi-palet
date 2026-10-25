@@ -4,6 +4,7 @@ import { bracketsView, type BracketsView } from './brackets.ts'
 import { participants } from './checkin.ts'
 import { milestones } from './milestones.ts'
 import { poolView, type PoolStanding, type PoolView } from './pool.ts'
+import type { TeamRef } from './types.ts'
 import { prizesView, type PrizesView } from './prizes.ts'
 import { finalRanking, type FinalRanking } from './ranking.ts'
 import { requireEdition, type EditionState } from './state.ts'
@@ -15,10 +16,18 @@ export { participants }
 /** Avant le jour J, tournoi en cours, tournoi terminé. */
 export type Phase = 'before' | 'during' | 'after'
 
-/** Pendant dès la partie 1 lancée ; après une fois les finales des quatre tableaux jouées. */
-export function phaseOf(state: EditionState): Phase {
+/**
+ * Pendant dès la partie 1 lancée ; après une fois les finales des quatre
+ * tableaux jouées. `ranking` : le classement déjà calculé, s'il est là.
+ */
+export function phaseOf(state: EditionState, ranking?: FinalRanking): Phase {
   if (state.pool.rounds.length === 0) return 'before'
-  return state.brackets.grids && finalRanking(state).finished ? 'after' : 'during'
+  return (ranking ?? finalRanking(state)).finished ? 'after' : 'during'
+}
+
+/** Ordre des listes d'éditions : la plus récente par date en tête (puis la dernière créée). */
+export function newestFirst(a: EditionSummary, b: EditionSummary): number {
+  return b.date.localeCompare(a.date) || b.createdAt - a.createdAt
 }
 
 /**
@@ -40,9 +49,9 @@ export interface PublicView {
   isTest: boolean
   phase: Phase
   /** Équipes inscrites, dans l'ordre d'inscription : nom seulement. */
-  teams: PublicTeam[]
+  teams: TeamRef[]
   /** Liste d'attente, dans l'ordre : nom seulement. */
-  waitlist: PublicTeam[]
+  waitlist: TeamRef[]
   placesLeft: number
   /** Parties, planches, scores et classement des poules (noms d'équipe seulement). */
   pool: PoolView
@@ -54,11 +63,6 @@ export interface PublicView {
   tv: TvState
   /** Chrono (heures du serveur) : chaque écran calcule le temps restant avec `clockReading`. */
   clock: ClockState | null
-}
-
-export interface PublicTeam {
-  id: string
-  name: string
 }
 
 /** Inscrits et liste d'attente, dans l'ordre d'inscription. */
@@ -73,7 +77,7 @@ function lineup(state: EditionState) {
 export function publicView(state: EditionState): PublicView {
   const { id, settings: s } = requireEdition(state)
   const { registered, waitlist, placesLeft } = lineup(state)
-  const named = (t: TeamFields & { id: string }): PublicTeam => ({ id: t.id, name: teamName(t) })
+  const named = (t: TeamFields & { id: string }): TeamRef => ({ id: t.id, name: teamName(t) })
   const brackets = bracketsView(state)
   const ranking = finalRanking(state, brackets)
   return {
@@ -89,7 +93,7 @@ export function publicView(state: EditionState): PublicView {
     maxTeams: s.maxTeams,
     gameMinutes: s.gameMinutes,
     isTest: s.isTest,
-    phase: phase(state, ranking),
+    phase: phaseOf(state, ranking),
     teams: registered.map(named),
     waitlist: waitlist.map(named),
     placesLeft,
@@ -99,12 +103,6 @@ export function publicView(state: EditionState): PublicView {
     tv: state.tv,
     clock: state.clock,
   }
-}
-
-/** `phaseOf` sans recalculer le classement déjà là. */
-function phase(state: EditionState, ranking: FinalRanking): Phase {
-  if (state.pool.rounds.length === 0) return 'before'
-  return ranking.finished ? 'after' : 'during'
 }
 
 /** Fiche équipe complète, pour la console. */
@@ -168,7 +166,7 @@ export function adminView(state: EditionState): AdminView {
     settings,
     previewToken,
     createdAt,
-    phase: phase(state, ranking),
+    phase: phaseOf(state, ranking),
     teams,
     registeredCount: registered.length,
     checkedInCount: participants(state).length,
@@ -214,21 +212,20 @@ export interface EditionSummary {
   createdAt: number
   phase: Phase
   /** Vainqueur du Principal (1re place), une fois le tournoi terminé ; sinon `null`. */
-  winner: PublicTeam | null
+  winner: TeamRef | null
 }
 
 export function editionSummary(state: EditionState): EditionSummary {
   const { id, settings, createdAt } = requireEdition(state)
-  const ranking = state.brackets.grids ? finalRanking(state) : null
-  const done = ranking?.finished ?? false
-  const first = done ? ranking!.rows[0]?.team : undefined
+  const ranking = finalRanking(state)
+  const first = ranking.finished ? ranking.rows[0]?.team : undefined
   return {
     id,
     name: settings.name,
     date: settings.date,
     isTest: settings.isTest,
     createdAt,
-    phase: ranking ? phase(state, ranking) : phaseOf(state),
+    phase: phaseOf(state, ranking),
     winner: first ? { id: first.id, name: first.name } : null,
   }
 }
@@ -236,7 +233,7 @@ export function editionSummary(state: EditionState): EditionSummary {
 /** L'édition « en cours » du site public : la plus récente par date, hors test. */
 export function currentEdition(summaries: readonly EditionSummary[]): EditionSummary | null {
   const real = summaries.filter((e) => !e.isTest)
-  real.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+  real.sort(newestFirst)
   return real[0] ?? null
 }
 
@@ -244,5 +241,5 @@ export function currentEdition(summaries: readonly EditionSummary[]): EditionSum
 export function palmares(summaries: readonly EditionSummary[]): EditionSummary[] {
   return summaries
     .filter((e) => !e.isTest && e.phase === 'after')
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+    .sort(newestFirst)
 }

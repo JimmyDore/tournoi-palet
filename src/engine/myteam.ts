@@ -1,8 +1,9 @@
 import { BRACKET_NAMES, type BracketKey, type BracketMatchView, type BracketTeamRef } from './brackets.ts'
 import { CHALLENGES } from './challenges.ts'
-import { POOL_ROUNDS, type PoolStanding, type PoolTeamRef } from './pool.ts'
+import { POOL_ROUNDS, type PoolStanding } from './pool.ts'
+import { playsIn, type TeamRef } from './types.ts'
 import type { FinalRankingRow } from './ranking.ts'
-import type { PublicTeam, PublicView } from './views.ts'
+import type { PublicView } from './views.ts'
 
 // « Mon équipe » sur le téléphone. Calculé à partir de la vue publique (le
 // téléphone n'a qu'elle), donc sans aucune donnée privée par construction.
@@ -24,16 +25,16 @@ export type MyNext =
   | { kind: 'forfeit' }
   /** Forfait déclaré pendant les tableaux : ses matchs restants sont perdus 13-0. */
   | { kind: 'bracket-forfeit' }
-  | { kind: 'board'; round: number; board: number; opponent: PoolTeamRef }
-  | { kind: 'waiting-board'; round: number; opponent: PoolTeamRef }
+  | { kind: 'board'; round: number; board: number; opponent: TeamRef }
+  | { kind: 'waiting-board'; round: number; opponent: TeamRef }
   | { kind: 'bye'; round: number }
   | { kind: 'played'; round: number }
   /** Les 4 parties jouées, tableaux pas encore générés. */
   | { kind: 'pools-done' }
-  | ({ kind: 'bracket-board'; board: number; opponent: PoolTeamRef } & BracketStage)
-  | ({ kind: 'bracket-waiting-board'; opponent: PoolTeamRef } & BracketStage)
+  | ({ kind: 'bracket-board'; board: number; opponent: TeamRef } & BracketStage)
+  | ({ kind: 'bracket-waiting-board'; opponent: TeamRef } & BracketStage)
   /** Match pas encore lancé : adversaire pas encore connu (`null`), ou tour précédent pas fini. */
-  | ({ kind: 'bracket-pending'; opponent: PoolTeamRef | null } & BracketStage)
+  | ({ kind: 'bracket-pending'; opponent: TeamRef | null } & BracketStage)
   /** Perdante du 1er tour : son Challenge se forme à la fin de ce tour. */
   | { kind: 'challenge-waiting'; bracket: BracketKey; bracketName: string }
   /** Éliminée, place encore provisoire (son tour n'est pas fini). */
@@ -46,7 +47,7 @@ export interface MyResult {
   round: number
   bye: boolean
   board: number | null
-  opponent: PoolTeamRef | null
+  opponent: TeamRef | null
   scored: number
   conceded: number
   won: boolean
@@ -58,7 +59,7 @@ export interface MyResult {
 export interface MyBracketResult extends BracketStage {
   matchId: string
   board: number | null
-  opponent: PoolTeamRef
+  opponent: TeamRef
   scored: number
   conceded: number
   won: boolean
@@ -67,7 +68,7 @@ export interface MyBracketResult extends BracketStage {
 }
 
 export interface MyTeamView {
-  team: PublicTeam
+  team: TeamRef
   next: MyNext
   /** Matchs joués (score saisi) et exempts, partie par partie. */
   results: MyResult[]
@@ -117,7 +118,7 @@ export function myTeamView(view: PublicView, teamId: string): MyTeamView | null 
   return { team, next, results, standing, teamCount: pool.standings.length, bracketResults, ranking, prize }
 }
 
-const ref = (team: BracketTeamRef): PoolTeamRef => ({ id: team.id, name: team.name })
+const ref = (team: BracketTeamRef): TeamRef => ({ id: team.id, name: team.name })
 const stageOf = (m: BracketMatchView): BracketStage => ({ bracket: m.bracket, bracketName: m.bracketName, roundName: m.roundName })
 const sideOf = (m: BracketMatchView, teamId: string) => (m.teamA?.id === teamId ? 'A' : m.teamB?.id === teamId ? 'B' : null)
 
@@ -159,7 +160,7 @@ function nextOf(view: PublicView, teamId: string, drawn: boolean): MyNext {
   if (!last) return { kind: 'not-drawn' }
   if (!drawn) return { kind: 'not-in-pool' }
   if (last.bye?.team.id === teamId) return { kind: 'bye', round: last.round }
-  const match = last.matches.find((m) => m.teamA.id === teamId || m.teamB.id === teamId)
+  const match = last.matches.find((m) => playsIn(m, teamId))
   if (!match || match.score) return last.round >= POOL_ROUNDS && last.complete ? { kind: 'pools-done' } : { kind: 'played', round: last.round }
   const opponent = match.teamA.id === teamId ? match.teamB : match.teamA
   if (match.board === null) return { kind: 'waiting-board', round: last.round, opponent }

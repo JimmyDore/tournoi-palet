@@ -1,4 +1,4 @@
-import type { BracketMatchView, BracketView, PublicView } from '../../engine/index.ts'
+import { playsIn, type BracketMatchView, type BracketView, type PublicView } from '../../engine/index.ts'
 import { rankingStage } from '../format.ts'
 
 /** Vainqueurs des quatre tableaux, en tête de la page d'une édition terminée. */
@@ -82,7 +82,7 @@ export function PublicBrackets({ view, teamId }: { view: PublicView; teamId: str
   )
 }
 
-const hasTeam = (m: BracketMatchView, teamId: string | null) => teamId !== null && (m.teamA?.id === teamId || m.teamB?.id === teamId)
+const hasTeam = playsIn
 
 /** Matchs de tableau en cours, par planche, puis ceux en attente de planche (téléphone). */
 export function LiveBracketMatches({ view, teamId }: { view: PublicView; teamId: string | null }) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { POOL_ROUNDS, type PoolMatchView, type Score, type PoolRoundView, type PoolStanding, type PoolTeamRef } from '../../engine/index.ts'
+import { POOL_ROUNDS, type PoolMatchView, type Score, type PoolRoundView, type PoolStanding, type TeamRef } from '../../engine/index.ts'
 import { sendCommand } from '../api.ts'
 import { ConfirmDialog } from '../components/ConfirmDialog.tsx'
 import { ClockControls } from './ClockControls.tsx'
@@ -23,7 +23,7 @@ type Dialog =
   | { kind: 'launch' }
   /** `warning` : le refus du moteur sans confirmation, qui dit ce qui sera effacé. */
   | { kind: 'remove'; round: number; warning: string }
-  | { kind: 'forfeit'; team: PoolTeamRef }
+  | { kind: 'forfeit'; team: TeamRef }
 
 /**
  * Onglet « Poules » : lancer les parties, saisir et corriger les scores match
@@ -407,8 +407,8 @@ function Standings({
   onCancelForfeit,
 }: {
   standings: PoolStanding[]
-  onForfeit: (team: PoolTeamRef) => void
-  onCancelForfeit: (team: PoolTeamRef) => void
+  onForfeit: (team: TeamRef) => void
+  onCancelForfeit: (team: TeamRef) => void
 }) {
   return (
     <section className="panel">
