@@ -44,8 +44,7 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
       return { label: `Équipe « ${team ? teamName(team) : event.teamId} » désinscrite${moves(before, after)}` }
     }
     case 'teamCheckedIn': {
-      const price = before.edition ? formatSetting('price', before.edition.settings.price) : '?'
-      return { label: `Équipe « ${nameIn(before, event.teamId)} » pointée (présente, ${price} payés)` }
+      return { label: `Équipe « ${nameIn(before, event.teamId)} » pointée (arrivée)` }
     }
     case 'paletsLent':
       return { label: `Palets prêtés à « ${nameIn(before, event.teamId)} » (caution de ${depositOf(before)})` }

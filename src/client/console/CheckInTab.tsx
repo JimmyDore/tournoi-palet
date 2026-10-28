@@ -28,7 +28,7 @@ const hourFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '
 
 /**
  * Onglet « Pointage » du jour J : une équipe passe à la table, on la cherche
- * et on coche « payé » (présente et payée en une action). Une seconde case
+ * et on coche « arrivée » (le paiement passe par HelloAsso). Une seconde case
  * note les palets prêtés contre caution, rendus en fin de journée.
  */
 export function CheckInTab({ view }: TabProps) {
@@ -42,7 +42,6 @@ export function CheckInTab({ view }: TabProps) {
 
   useEffect(() => searchRef.current?.focus(), [])
 
-  const price = formatPrice(view.settings.price)
   const deposit = formatPrice(view.settings.deposit)
   const registered = view.teams.filter((t) => t.status === 'registered')
   const missing = registered.filter((t) => t.checkedInAt === null)
@@ -61,7 +60,7 @@ export function CheckInTab({ view }: TabProps) {
       return setRefusal(result.reason)
     }
     setRefusal(null)
-    setMessage(undo ? `Pointage de « ${team.name} » annulé.` : `« ${team.name} » est pointée : présente, ${price} payés.`)
+    setMessage(undo ? `Pointage de « ${team.name} » annulé.` : `« ${team.name} » est pointée : arrivée.`)
     if (!undo) setQuery('')
     searchRef.current?.focus()
   }
@@ -123,7 +122,6 @@ export function CheckInTab({ view }: TabProps) {
     <CheckInRow
       key={team.id}
       team={team}
-      price={price}
       deposit={deposit}
       busy={busy === team.id}
       onToggle={toggle}
@@ -141,7 +139,6 @@ export function CheckInTab({ view }: TabProps) {
             {checkedIn.length} / {registered.length}
           </strong>{' '}
           pointées · {missing.length} {missing.length > 1 ? 'manquantes' : 'manquante'}
-          <span className="muted"> · <span className="nowrap">{price} par doublette</span></span>
         </p>
         <label className="field">
           <span>Rechercher une équipe ou un joueur</span>
@@ -265,7 +262,6 @@ function TeamLabel({ team, showWaitlist = true }: { team: AdminTeam; showWaitlis
 
 function CheckInRow({
   team,
-  price,
   deposit,
   busy,
   onToggle,
@@ -273,7 +269,6 @@ function CheckInRow({
   onReplace,
 }: {
   team: AdminTeam
-  price: string
   deposit: string
   busy: boolean
   onToggle: (team: AdminTeam) => void
@@ -284,8 +279,8 @@ function CheckInRow({
   return (
     <li className={`team-row checkin-row${checked ? ' is-checked' : ''}`}>
       <label className="checkin-box">
-        <input type="checkbox" checked={checked} disabled={busy} onChange={() => onToggle(team)} aria-label={`${team.name} : payé (${price})`} />
-        <span>payé ({price})</span>
+        <input type="checkbox" checked={checked} disabled={busy} onChange={() => onToggle(team)} aria-label={`${team.name} : arrivée`} />
+        <span>arrivée</span>
       </label>
       <TeamLabel team={team} />
       <div className="team-actions">

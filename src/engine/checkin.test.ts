@@ -114,7 +114,7 @@ describe('journal et rejouage du pointage', () => {
     const states = [initialState(), ...t.events.map((_, i) => replay(t.events.slice(0, i + 1)))]
     const lines = t.events.map((e, i) => describeEvent(states[i], states[i + 1], e)).slice(4)
     expect(lines).toEqual([
-      { label: 'Équipe « A1 & A2 » pointée (présente, 18 € payés)' },
+      { label: 'Équipe « A1 & A2 » pointée (arrivée)' },
       { label: 'Pointage de « A1 & A2 » annulé' },
       { label: 'Équipe « B1 & B2 » absente, remplacée par « C1 & C2 » (tête de la liste d’attente)' },
     ])
