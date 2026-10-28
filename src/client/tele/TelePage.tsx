@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { PublicView } from '../../engine/index.ts'
 import { publicPageUrl } from '../api.ts'
 import { CLUB_TITLE, Logo } from '../components/Brand.tsx'
@@ -41,7 +41,7 @@ export function TelePage({ id, k }: { id: string; k?: string | null }) {
 
 function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null; offline: boolean }) {
   const slides = slidesOf(view)
-  const slide = useRotation(slides)
+  const { slide, next } = useRotation(slides)
   const url = publicPageUrl(view.id, view.isTest ? k : null)
   const round = view.pool.rounds.at(-1)
   const scored = round ? round.matches.length - round.awaitingScore.length : 0
@@ -101,7 +101,14 @@ function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null;
         </div>
         {offline && <p className="tv-offline">Connexion perdue, reconnexion…</p>}
         {view.isTest && <p className="tv-test">Édition de test</p>}
-        <FullscreenButton />
+        <div className="tv-controls">
+          {slides.length > 1 && (
+            <button type="button" className="tv-control" onClick={next}>
+              Suivant →
+            </button>
+          )}
+          <FullscreenButton />
+        </div>
       </aside>
     </div>
   )
@@ -124,24 +131,45 @@ function Welcome({ view }: { view: PublicView }) {
 /**
  * Fait tourner les diapositives. Une nouvelle saisie ne relance pas le
  * minuteur ; on garde la diapositive affichée tant qu'elle existe.
+ * `next` (bouton « Suivant », flèche droite ou espace) passe à la suivante
+ * et relance le minuteur.
  */
-function useRotation(slides: Slide[]): Slide | null {
+function useRotation(slides: Slide[]): { slide: Slide | null; next: () => void } {
   const [current, setCurrent] = useState<string | null>(null)
+  const [skips, setSkips] = useState(0)
   const keys = slides.map((s) => s.key).join('|')
+
+  const advance = useCallback(() => {
+    setCurrent((key) => {
+      const list = keys.split('|')
+      const index = key ? list.indexOf(key) : 0
+      return list[(index + 1) % list.length]
+    })
+  }, [keys])
+
+  const next = useCallback(() => {
+    if (slides.length < 2) return
+    advance()
+    setSkips((n) => n + 1)
+  }, [advance, slides.length])
 
   useEffect(() => {
     if (slides.length < 2) return
-    const timer = setInterval(() => {
-      setCurrent((key) => {
-        const list = keys.split('|')
-        const index = key ? list.indexOf(key) : 0
-        return list[(index + 1) % list.length]
-      })
-    }, SLIDE_MS)
+    const timer = setInterval(advance, SLIDE_MS)
     return () => clearInterval(timer)
-  }, [keys])
+  }, [advance, skips])
 
-  return slides.find((s) => s.key === current) ?? slides[0] ?? null
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowRight' && e.key !== ' ') return
+      e.preventDefault()
+      next()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [next])
+
+  return { slide: slides.find((s) => s.key === current) ?? slides[0] ?? null, next }
 }
 
 /** Bouton discret, caché une fois en plein écran. */
@@ -154,7 +182,7 @@ function FullscreenButton() {
   }, [])
   if (full || !document.fullscreenEnabled) return null
   return (
-    <button type="button" className="tv-fullscreen" onClick={() => document.documentElement.requestFullscreen().catch(() => {})}>
+    <button type="button" className="tv-control" onClick={() => document.documentElement.requestFullscreen().catch(() => {})}>
       Plein écran
     </button>
   )

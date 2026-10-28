@@ -426,10 +426,15 @@
   color: var(--petrole-fonce);
 }
 
-.tv-fullscreen {
+.tv-controls {
   position: absolute;
   top: 1vh;
   right: 1vh;
+  display: flex;
+  gap: 0.8vh;
+}
+
+.tv-control {
   padding: 0.4vh 0.8vh;
   font: inherit;
   font-size: 1.5vh;
@@ -441,8 +446,8 @@
   cursor: pointer;
 }
 
-.tv-fullscreen:hover,
-.tv-fullscreen:focus-visible {
+.tv-control:hover,
+.tv-control:focus-visible {
   opacity: 1;
 }
 
