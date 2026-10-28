@@ -583,6 +583,21 @@ a {
   gap: 0.35rem;
 }
 
+.tv-rotation {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.tv-rotation legend {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.tv-rotation .check {
+  margin-bottom: 0.5rem;
+}
+
 .check-inline {
   margin: 0;
   font-weight: 400;

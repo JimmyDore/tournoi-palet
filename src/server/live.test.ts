@@ -106,7 +106,7 @@ describe('direct télé et téléphone', () => {
     }
 
     await command({ type: 'setTvView', view: 'standings' })
-    expect((await tele.until((v) => v.tv.view === 'standings')).tv).toEqual({ view: 'standings' })
+    expect((await tele.until((v) => v.tv.view === 'standings')).tv).toEqual({ view: 'standings', hidden: [] })
 
     for (const message of tele.raw) {
       for (const secret of ['0611223344', '0699887766', 'paiera', 'Licensed', 'phone', 'comment', 'checkedIn', k]) {

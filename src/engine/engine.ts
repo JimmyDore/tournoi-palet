@@ -58,6 +58,7 @@ export function decide(state: EditionState, command: Command, ctx: Ctx): Decisio
     case 'launchReadyMatches':
       return decideBrackets(state, command, ctx)
     case 'setTvView':
+    case 'setTvRotation':
       return decideTv(state, command, ctx)
     case 'startClock':
     case 'stopClock':
@@ -112,6 +113,7 @@ export function evolve(state: EditionState, event: Event): EditionState {
     case 'readyMatchesLaunched':
       return evolveBrackets(state, event)
     case 'tvViewSet':
+    case 'tvRotationSet':
       return evolveTv(state, event)
     case 'clockStarted':
     case 'clockStopped':

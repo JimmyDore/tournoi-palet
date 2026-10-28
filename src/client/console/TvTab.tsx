@@ -1,18 +1,26 @@
 import { useState } from 'react'
-import { TV_VIEWS, tvViewLabel, type TvViewChoice } from '../../engine/index.ts'
+import { TV_VIEWS, tvViewLabel, type TvScreen, type TvViewChoice } from '../../engine/index.ts'
 import { publicLink, sendCommand } from '../api.ts'
 import type { TabProps } from './tabs.tsx'
 
 const CHOICES: TvViewChoice[] = ['auto', ...TV_VIEWS.map((v) => v.key)]
 
-/** Onglet « Télé » : lien de l'écran et blocage sur une vue (diffusé en direct à la télé). */
+/** Onglet « Télé » : lien de l'écran, blocage sur une vue et vues de la rotation (diffusés en direct à la télé). */
 export function TvTab({ view }: TabProps) {
   const [refusal, setRefusal] = useState<string | null>(null)
   const current = view.tv.view
   const link = publicLink('tele', view, true)
 
+  const hidden = view.tv.hidden
+
   const choose = async (choice: TvViewChoice) => {
     const result = await sendCommand(view.id, { type: 'setTvView', view: choice })
+    setRefusal(result.ok ? null : result.reason)
+  }
+
+  const toggleRotation = async (screen: TvScreen) => {
+    const next = hidden.includes(screen) ? hidden.filter((s) => s !== screen) : [...hidden, screen]
+    const result = await sendCommand(view.id, { type: 'setTvRotation', hidden: next })
     setRefusal(result.ok ? null : result.reason)
   }
 
@@ -42,6 +50,19 @@ export function TvTab({ view }: TabProps) {
           </button>
         ))}
       </div>
+      <fieldset className="tv-rotation">
+        <legend>Dans la rotation automatique</legend>
+        <p className="muted small">
+          Une vue cochée ne passe que si elle a quelque chose à montrer (un tableau apparaît une fois formé). Si tout est décoché, la télé
+          tourne sur tout.
+        </p>
+        {TV_VIEWS.map(({ key, label }) => (
+          <label key={key} className="check">
+            <input type="checkbox" checked={!hidden.includes(key)} onChange={() => toggleRotation(key)} />
+            <span>{label}</span>
+          </label>
+        ))}
+      </fieldset>
       {refusal && (
         <p className="refusal" role="alert">
           {refusal}

@@ -7,7 +7,7 @@ const setTv = (view: string) => ({ type: 'setTvView', view }) as Command
 describe('vue de la télé', () => {
   it('tourne seule par défaut', () => {
     const t = run([createEdition()])
-    expect(publicView(t.state).tv).toEqual({ view: 'auto' })
+    expect(publicView(t.state).tv).toEqual({ view: 'auto', hidden: [] })
   })
 
   it('se bloque sur une vue depuis la console, puis repart en rotation', () => {
@@ -80,6 +80,39 @@ describe('rotation automatique de la télé, selon le moment du tournoi', () => 
     // Le 1er tour joué : les Challenges sont formés.
     t.apply({ type: 'fillRandomScores' })
     expect(tvRotation(publicView(t.state))).toEqual(['matches', 'standings', 'bracket-P', 'bracket-CP', 'bracket-C', 'bracket-CC', 'ranking'])
+  })
+
+  it('saute les vues retirées par la console ; un tableau formé plus tard y entre seul', () => {
+    const t = bracketsReady(48, { isTest: true })
+    t.apply({ type: 'setTvRotation', hidden: ['ranking', 'standings'] })
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'bracket-P', 'bracket-C'])
+    t.apply({ type: 'fillRandomScores' })
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'bracket-P', 'bracket-CP', 'bracket-C', 'bracket-CC'])
+  })
+
+  it('tourne sur tout si toutes les vues du moment sont retirées', () => {
+    const t = checkedIn(4).apply(draw)
+    t.apply({ type: 'setTvRotation', hidden: ['matches', 'standings'] })
+    expect(tvRotation(publicView(t.state))).toEqual(['matches', 'standings'])
+  })
+
+  it('garde les vues retirées quand on bloque puis débloque la télé', () => {
+    const t = checkedIn(4).apply(draw)
+    t.apply({ type: 'setTvRotation', hidden: ['standings'] })
+    t.apply(setTv('standings'))
+    expect(tvRotation(publicView(t.state))).toEqual(['standings'])
+    t.apply(setTv('auto'))
+    expect(tvRotation(publicView(t.state))).toEqual(['matches'])
+  })
+
+  it('refuse une vue inconnue dans la rotation et note le choix au journal', () => {
+    const t = run([createEdition()])
+    expect(t.refusal({ type: 'setTvRotation', hidden: ['nope'] } as unknown as Command)).toBe('Cette vue de télé n’existe pas.')
+    t.apply({ type: 'setTvRotation', hidden: ['ranking', 'matches', 'ranking'] })
+    expect(publicView(t.state).tv.hidden).toEqual(['matches', 'ranking'])
+    const at = (n: number) => replay(t.events.slice(0, n), initialState())
+    const n = t.events.length
+    expect(describeEvent(at(n - 1), at(n), t.events[n - 1]).label).toBe('Rotation de la télé sans « Matchs en cours », « Classement final »')
   })
 
   it('après les finales : classement final puis les tableaux', () => {

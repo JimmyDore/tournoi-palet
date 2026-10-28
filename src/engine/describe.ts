@@ -154,6 +154,12 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
     }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
+    case 'tvRotationSet':
+      return {
+        label: event.hidden.length === 0
+          ? 'Rotation de la télé sur toutes les vues'
+          : `Rotation de la télé sans ${event.hidden.map((v) => `« ${tvViewLabel(v)} »`).join(', ')}`,
+      }
     case 'clockStarted':
     case 'clockStopped':
       return { label: clockLabel(event, before) }
