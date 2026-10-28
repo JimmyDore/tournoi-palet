@@ -154,6 +154,8 @@ export function describeEvent(before: EditionState, after: EditionState, event: 
     }
     case 'tvViewSet':
       return { label: event.view === 'auto' ? 'Télé en rotation automatique' : `Télé bloquée sur « ${tvViewLabel(event.view)} »` }
+    case 'tvSlideSkipped':
+      return { label: 'Télé : écran suivant' }
     case 'tvRotationSet':
       return {
         label: event.hidden.length === 0

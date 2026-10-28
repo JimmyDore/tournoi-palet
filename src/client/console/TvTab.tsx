@@ -18,6 +18,11 @@ export function TvTab({ view }: TabProps) {
     setRefusal(result.ok ? null : result.reason)
   }
 
+  const skip = async () => {
+    const result = await sendCommand(view.id, { type: 'skipTvSlide' })
+    setRefusal(result.ok ? null : result.reason)
+  }
+
   const toggleRotation = async (screen: TvScreen) => {
     const next = hidden.includes(screen) ? hidden.filter((s) => s !== screen) : [...hidden, screen]
     const result = await sendCommand(view.id, { type: 'setTvRotation', hidden: next })
@@ -49,6 +54,11 @@ export function TvTab({ view }: TabProps) {
             {choice === 'auto' ? 'Rotation automatique' : tvViewLabel(choice)}
           </button>
         ))}
+      </div>
+      <div className="actions">
+        <button type="button" className="btn" onClick={skip}>
+          Écran suivant →
+        </button>
       </div>
       <fieldset className="tv-rotation">
         <legend>Dans la rotation automatique</legend>

@@ -53,9 +53,11 @@ export interface TvState {
   view: TvViewChoice
   /** Vues retirées de la rotation automatique (une liste d'exclusion : un tableau formé plus tard y entre seul). */
   hidden: TvScreen[]
+  /** Compteur des « écran suivant » demandés depuis la console : la télé avance quand il change. */
+  skips: number
 }
 
-export const initialTv = (): TvState => ({ view: 'auto', hidden: [] })
+export const initialTv = (): TvState => ({ view: 'auto', hidden: [], skips: 0 })
 
 export function tvViewLabel(view: TvViewChoice): string {
   return TV_VIEWS.find((v) => v.key === view)?.label ?? 'Rotation automatique'
@@ -74,7 +76,12 @@ export interface SetTvRotation {
   hidden: TvScreen[]
 }
 
-export type TvCommand = SetTvView | SetTvRotation
+/** Bouton « Écran suivant » de la console. */
+export interface SkipTvSlide {
+  type: 'skipTvSlide'
+}
+
+export type TvCommand = SetTvView | SetTvRotation | SkipTvSlide
 
 export interface TvViewSet {
   type: 'tvViewSet'
@@ -88,12 +95,18 @@ export interface TvRotationSet {
   hidden: TvScreen[]
 }
 
-export type TvEvent = TvViewSet | TvRotationSet
+export interface TvSlideSkipped {
+  type: 'tvSlideSkipped'
+  at: number
+}
+
+export type TvEvent = TvViewSet | TvRotationSet | TvSlideSkipped
 
 const isScreen = (view: unknown): view is TvScreen => TV_VIEWS.some((v) => v.key === view)
 const isTvView = (view: unknown): view is TvViewChoice => view === 'auto' || isScreen(view)
 
 export function decideTv(state: EditionState, command: TvCommand, ctx: Ctx): Decision<TvEvent> {
+  if (command.type === 'skipTvSlide') return accept({ type: 'tvSlideSkipped', at: ctx.now })
   if (command.type === 'setTvRotation') {
     if (!Array.isArray(command.hidden) || !command.hidden.every(isScreen)) return refuse('Cette vue de télé n’existe pas.')
     // Dans l'ordre de `TV_VIEWS`, sans doublon.
@@ -107,6 +120,7 @@ export function decideTv(state: EditionState, command: TvCommand, ctx: Ctx): Dec
 }
 
 export function evolveTv(state: EditionState, event: TvEvent): EditionState {
+  if (event.type === 'tvSlideSkipped') return { ...state, tv: { ...state.tv, skips: state.tv.skips + 1 } }
   if (event.type === 'tvRotationSet') return { ...state, tv: { ...state.tv, hidden: event.hidden } }
   return { ...state, tv: { ...state.tv, view: event.view } }
 }

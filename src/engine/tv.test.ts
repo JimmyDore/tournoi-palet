@@ -7,7 +7,7 @@ const setTv = (view: string) => ({ type: 'setTvView', view }) as Command
 describe('vue de la télé', () => {
   it('tourne seule par défaut', () => {
     const t = run([createEdition()])
-    expect(publicView(t.state).tv).toEqual({ view: 'auto', hidden: [] })
+    expect(publicView(t.state).tv).toEqual({ view: 'auto', hidden: [], skips: 0 })
   })
 
   it('se bloque sur une vue depuis la console, puis repart en rotation', () => {
@@ -34,6 +34,13 @@ describe('vue de la télé', () => {
     t.apply(setTv('bracket-P'))
     expect(publicView(t.state).tv.view).toBe('bracket-P')
     expect(tvRotation(publicView(t.state))).toEqual(['bracket-P'])
+  })
+
+  it('« Écran suivant » depuis la console : la télé voit le compteur avancer', () => {
+    const t = run([createEdition(), { type: 'skipTvSlide' }, { type: 'skipTvSlide' }])
+    expect(publicView(t.state).tv.skips).toBe(2)
+    const at = (n: number) => replay(t.events.slice(0, n), initialState())
+    expect(describeEvent(at(1), at(2), t.events[1]).label).toBe('Télé : écran suivant')
   })
 
   it('refuse une vue inconnue', () => {

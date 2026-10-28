@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PublicView } from '../../engine/index.ts'
 import { publicPageUrl } from '../api.ts'
 import { CLUB_TITLE, Logo } from '../components/Brand.tsx'
@@ -42,6 +42,13 @@ export function TelePage({ id, k }: { id: string; k?: string | null }) {
 function TeleScreen({ view, k, offline }: { view: PublicView; k?: string | null; offline: boolean }) {
   const slides = slidesOf(view)
   const { slide, next } = useRotation(slides)
+  // « Écran suivant » de la console : la télé avance à chaque nouveau clic (pas à l'ouverture).
+  const skips = useRef(view.tv.skips)
+  useEffect(() => {
+    if (view.tv.skips === skips.current) return
+    skips.current = view.tv.skips
+    next()
+  }, [view.tv.skips, next])
   const url = publicPageUrl(view.id, view.isTest ? k : null)
   const round = view.pool.rounds.at(-1)
   const scored = round ? round.matches.length - round.awaitingScore.length : 0
