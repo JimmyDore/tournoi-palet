@@ -99,9 +99,13 @@ export const SCREENS: Record<TvScreen, ScreenDef> = {
     pages: (view) => {
       const rows = view.pool.standings
       if (rows.length === 0) return [<TvEmpty key="empty" text="Le classement s’affichera dès le lancement de la partie 1." />]
+      // Tableau visé : la répartition validée, sinon la proposition (provisoire).
+      const { split } = view.brackets
+      const blocks = new Map<string, 'P' | 'C'>([...split.principal.map((t) => [t.id, 'P'] as const), ...split.consolante.map((t) => [t.id, 'C'] as const)])
+      const provisional = split.validatedPrincipal === null
       return chunk(rows, STANDINGS_PER_PAGE).map((page, i) => (
         <div key={i} className="tv-page">
-          <TvStandings rows={page} />
+          <TvStandings rows={page} blocks={blocks} provisional={provisional} />
         </div>
       ))
     },
@@ -282,13 +286,14 @@ function TvBracketMatch({ match }: { match: BracketMatchView }) {
   )
 }
 
-function TvStandings({ rows }: { rows: PoolStanding[] }) {
+function TvStandings({ rows, blocks, provisional }: { rows: PoolStanding[]; blocks: Map<string, 'P' | 'C'>; provisional: boolean }) {
   return (
     <table className="tv-table">
       <thead>
         <tr>
           <th className="tv-rank">#</th>
           <th className="tv-name">Équipe</th>
+          <th className="tv-bracket-col">{provisional ? 'Tableau (si fin des poules)' : 'Tableau'}</th>
           <th>V</th>
           <th>Pour</th>
           <th>Contre</th>
@@ -302,6 +307,11 @@ function TvStandings({ rows }: { rows: PoolStanding[] }) {
             <td className="tv-name">
               {s.team.name}
               {s.forfeit && <span className="tv-forfeit"> forfait</span>}
+            </td>
+            <td className="tv-bracket-col">
+              {blocks.has(s.team.id) && (
+                <span className={`tv-badge tv-badge-${blocks.get(s.team.id)}`}>{BRACKET_NAMES[blocks.get(s.team.id)!]}</span>
+              )}
             </td>
             <td className="tv-wins">{s.wins}</td>
             <td>{s.pointsFor}</td>
